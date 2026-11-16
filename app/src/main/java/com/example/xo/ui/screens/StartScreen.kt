@@ -20,7 +20,7 @@ import com.example.xo.engine.GameMode
    Spacer(Modifier.height(10.dp))
    OutlinedButton(onClick={onStart(GameMode.LOCAL,difficulty)},modifier=Modifier.fillMaxWidth()) { Text("Two Players – Same Device") }
    Spacer(Modifier.height(10.dp))
-   OutlinedButton(onClick={onStart(GameMode.BLUETOOTH,difficulty)},modifier=Modifier.fillMaxWidth()) { Text("Bluetooth – setup pending") }
+   OutlinedButton(onClick={},enabled=false,modifier=Modifier.fillMaxWidth()) { Text("Bluetooth Multiplayer – next phase") }
   }
  }
 }

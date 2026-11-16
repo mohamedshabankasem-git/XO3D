@@ -24,6 +24,7 @@ class GameViewModel:ViewModel() {
    viewModelScope.launch {
     val move=withContext(Dispatchers.Default) { Minimax.chooseMove(updated.board,updated.difficulty,Cell.O) }
     val latest=_state.value
+    if (latest.match != updated) return@launch
     val next=move?.let { runCatching { latest.match.play(it) }.getOrNull() }
     _state.value=if(next!=null) GameUiState(next) else latest.copy(isThinking=false)
    }

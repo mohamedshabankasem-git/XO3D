@@ -11,11 +11,13 @@ import java.io.IOException
 
 class BluetoothSocketChannel(private val socket: BluetoothSocket) : Closeable {
     private val writeMutex = Mutex()
+
     suspend fun send(signal: BluetoothSignal) = withContext(Dispatchers.IO) {
-        val bytes = (BluetoothSignalCodec.encode(signal) + "
-").toByteArray(Charsets.UTF_8)
-        socket.outputStream.write(bytes)
-        socket.outputStream.flush()
+        writeMutex.withLock {
+            val bytes = (BluetoothSignalCodec.encode(signal) + "\n").toByteArray(Charsets.UTF_8)
+            socket.outputStream.write(bytes)
+            socket.outputStream.flush()
+        }
     }
 
     suspend fun receive(): BluetoothSignal = withContext(Dispatchers.IO) {

@@ -20,7 +20,7 @@ jobs:
           curl -fsSL https://services.gradle.org/distributions/gradle-8.9-bin.zip -o /tmp/gradle.zip
           unzip -q /tmp/gradle.zip -d /opt
           echo "/opt/gradle-8.9/bin" >> "$GITHUB_PATH"
-      - run: gradle test
+      - name: Install Android platform\n        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"\n      - name: Run unit tests\n        run: gradle :engine:test :bluetooth:testDebugUnitTest :app:testDebugUnitTest
       - run: gradle :app:lintDebug
       - run: gradle :app:assembleDebug
       - uses: actions/upload-artifact@v4

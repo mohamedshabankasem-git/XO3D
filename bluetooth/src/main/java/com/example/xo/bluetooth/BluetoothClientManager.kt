@@ -1,5 +1,6 @@
 package com.example.xo.bluetooth
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
@@ -11,6 +12,7 @@ import java.util.UUID
 class BluetoothClientManager(private val adapter: BluetoothAdapter) : Closeable {
     private var activeSocket: BluetoothSocket? = null
 
+    @SuppressLint("MissingPermission")
     suspend fun connect(device: BluetoothDevice, serviceId: UUID): BluetoothSocket =
         withContext(Dispatchers.IO) {
             close()

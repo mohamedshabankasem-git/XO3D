@@ -7,7 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clip\nimport androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -27,7 +27,7 @@ import com.example.xo.ui.game.GameUiState
  }
 }
 @Composable private fun GameBoard3D(cells:List<Cell>,enabled:Boolean,onMove:(Int)->Unit,modifier:Modifier=Modifier) {
- Canvas(modifier.clip(RoundedCornerShape(26.dp)).background(Color(0xFF172635)).pointerInput(cells,enabled) {
+ Canvas(modifier.clip(RoundedCornerShape(26.dp)).background(Color(0xFF172635)).graphicsLayer { rotationX=10f; shadowElevation=18.dp.toPx(); shape=RoundedCornerShape(26.dp); clip=true }.pointerInput(cells,enabled) {
   detectTapGestures { p -> if(enabled) { val col=(p.x/(size.width/3f)).toInt().coerceIn(0,2); val row=(p.y/(size.height/3f)).toInt().coerceIn(0,2); onMove(row*3+col) } }
  }) {
   val w=size.width/3f; val h=size.height/3f

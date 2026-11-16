@@ -5,10 +5,10 @@ import com.example.xo.engine.Difficulty
 import com.example.xo.engine.GameMode
 import com.example.xo.ui.game.GameViewModel
 import com.example.xo.ui.screens.GameScreen
-import com.example.xo.ui.screens.StartScreen
+import com.example.xo.ui.screens.StartScreen\nimport com.example.xo.ui.screens.ResultScreen
 @Composable fun AppNavGraph(vm:GameViewModel=viewModel()) {
  var playing by remember { mutableStateOf(false) }
  val state by vm.state.collectAsState()
- if(playing) GameScreen(state,vm::play,vm::restart) { playing=false }
+ if(playing && state.match.board.isFinished) ResultScreen(state,{ vm.restart() },{ playing=false })\n else if(playing) GameScreen(state,vm::play,vm::restart) { playing=false }
  else StartScreen { mode,difficulty -> vm.start(mode,difficulty); playing=true }
 }

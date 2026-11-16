@@ -6,8 +6,8 @@ Modules: app (UI), engine (rules and Minimax AI), bluetooth (message protocol/se
 ## Build
 Requires JDK 17. Gradle 8.9 is downloaded by the included launcher on first use.
 ```sh
-./gradlew test
-./gradlew :app:assembleDebug
+sh ./gradlew test
+sh ./gradlew :app:assembleDebug
 ```
 
 ## Implementation status

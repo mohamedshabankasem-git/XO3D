@@ -4,7 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.activity.compose.BackHandler
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.Box\nimport androidx.compose.foundation.layout.fillMaxSize\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -75,14 +75,31 @@ fun AppNavGraph(vm: GameViewModel = viewModel()) {
             onBack = { showBluetoothLobby = false }
         )
     } else if (playing && state.match.board.isFinished && showResult) {
-        ResultScreen(state, {
-            vm.restart()
-            showResult = false
-        }, {
-            vm.disconnectBluetooth()
-            playing = false
-            showResult = false
-        })
+        Box(Modifier.fillMaxSize()) {
+            // Keep the completed match visible beneath the result overlay.
+            GameScreen(
+                state = state,
+                onMove = vm::play,
+                onReconnect = vm::reconnect,
+                onRestart = {
+                    vm.restart()
+                    showResult = false
+                },
+                onBack = {
+                    vm.disconnectBluetooth()
+                    playing = false
+                    showResult = false
+                }
+            )
+            ResultScreen(state, {
+                vm.restart()
+                showResult = false
+            }, {
+                vm.disconnectBluetooth()
+                playing = false
+                showResult = false
+            })
+        }
     } else if (playing) {
         GameScreen(
             state = state,

@@ -24,6 +24,7 @@ import com.example.xo.ui.game.GameUiState
 fun GameScreen(
     state: GameUiState,
     onMove: (Int) -> Unit,
+    onReconnect: () -> Unit,
     onRestart: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -77,6 +78,9 @@ fun GameScreen(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Spacer(Modifier.height(5.dp))
+                if (state.match.mode == GameMode.BLUETOOTH && state.connectionStatus.contains("Connection lost")) {
+                    OutlinedButton(onClick = onReconnect) { Text("Reconnect") }
+                }
                 Text(
                     if (state.match.mode == GameMode.SOLO) "You: X    •    Computer: O"
                     else "Player X    •    Player O",
@@ -87,7 +91,7 @@ fun GameScreen(
             Spacer(Modifier.weight(0.22f))
             GameBoard3D(
                 state.match.board.cells,
-                !state.match.board.isFinished && !state.isThinking,
+                !state.match.board.isFinished && !state.isThinking && state.connectionStatus != "Connection lost" && state.connectionStatus != "Reconnecting…",
                 onMove,
                 Modifier.fillMaxWidth().aspectRatio(1f)
             )

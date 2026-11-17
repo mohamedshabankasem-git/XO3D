@@ -7,6 +7,7 @@ import com.example.xo.bluetooth.BluetoothSignal
 import com.example.xo.bluetooth.BluetoothSocketChannel
 import com.example.xo.bluetooth.SignalType
 import com.example.xo.engine.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,20 +40,35 @@ class GameViewModel : ViewModel() {
     private var bluetoothSequence = 0L
     private var bluetoothSession: BluetoothGameSession? = null
     private var receiveJob: Job? = null
+    private var reconnectAction: (suspend () -> BluetoothSocketChannel)? = null
 
     fun start(mode: GameMode, difficulty: Difficulty = Difficulty.MEDIUM) {
         disconnectBluetooth()
         _state.value = GameUiState(Match(mode = mode, difficulty = difficulty))
     }
 
-    fun attachBluetooth(channel: BluetoothSocketChannel, isHost: Boolean, matchId: String) {
+    fun attachBluetooth(
+        channel: BluetoothSocketChannel,
+        isHost: Boolean,
+        matchId: String,
+        reconnect: suspend () -> BluetoothSocketChannel
+    ) {
         disconnectBluetooth()
-        bluetoothChannel = channel
         bluetoothMatchId = matchId
         bluetoothIsHost = isHost
         bluetoothSequence = 0L
         bluetoothSession = BluetoothGameSession(matchId, isHost)
-        _state.value = GameUiState(Match(mode = GameMode.BLUETOOTH), connectionStatus = if (isHost) "Your turn" else "Opponent turn")
+        reconnectAction = reconnect
+        _state.value = GameUiState(
+            Match(mode = GameMode.BLUETOOTH),
+            connectionStatus = if (isHost) "Your turn" else "Opponent turn"
+        )
+        bluetoothChannel = channel
+        listenForBluetoothMessages(channel)
+    }
+
+    private fun listenForBluetoothMessages(channel: BluetoothSocketChannel) {
+        receiveJob?.cancel()
         receiveJob = viewModelScope.launch {
             try {
                 while (true) {
@@ -77,10 +93,36 @@ class GameViewModel : ViewModel() {
                     if (current.match.currentPlayer != remoteMark || current.match.board.isFinished) continue
                     val updated = runCatching { current.match.play(index) }.getOrNull() ?: continue
                     val localMark = if (bluetoothIsHost) Cell.X else Cell.O
-                    _state.value = current.copy(match = updated, connectionStatus = if (updated.currentPlayer == localMark) "Your turn" else "Opponent turn")
+                    _state.value = current.copy(
+                        match = updated,
+                        connectionStatus = if (updated.currentPlayer == localMark) "Your turn" else "Opponent turn"
+                    )
                 }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (error: Exception) {
-                _state.value = _state.value.copy(connectionStatus = "Connection lost")
+                channel.close()
+                if (bluetoothChannel === channel) {
+                    _state.value = _state.value.copy(connectionStatus = "Connection lost")
+                }
+            }
+        }
+    }
+
+    fun reconnect() {
+        val reconnect = reconnectAction ?: return
+        if (_state.value.connectionStatus == "Reconnecting…") return
+        _state.value = _state.value.copy(connectionStatus = "Reconnecting…")
+        viewModelScope.launch {
+            try {
+                val channel = reconnect()
+                bluetoothChannel = channel
+                _state.value = _state.value.copy(
+                    connectionStatus = if (bluetoothIsHost) "Your turn" else "Opponent turn"
+                )
+                listenForBluetoothMessages(channel)
+            } catch (error: Exception) {
+                _state.value = _state.value.copy(connectionStatus = "Connection lost • Tap reconnect")
             }
         }
     }
@@ -157,6 +199,7 @@ class GameViewModel : ViewModel() {
         bluetoothChannel?.close()
         bluetoothChannel = null
         bluetoothSession = null
+        reconnectAction = null
         bluetoothMatchId = ""
         bluetoothSequence = 0L
     }

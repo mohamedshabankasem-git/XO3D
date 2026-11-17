@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.xo.bluetooth.BluetoothGameSession
 import com.example.xo.bluetooth.BluetoothSignal
-import com.example.xo.bluetooth.BluetoothSignalCodec
 import com.example.xo.bluetooth.BluetoothSocketChannel
 import com.example.xo.bluetooth.SignalType
 import com.example.xo.engine.*
@@ -59,7 +58,7 @@ class GameViewModel : ViewModel() {
                 while (true) {
                     val signal = channel.receive()
                     if (signal.matchId != bluetoothMatchId || signal.type != SignalType.MOVE) continue
-                    val accepted = bluetoothSession?.accept(signal) ?: break
+                    val accepted = bluetoothSession?.accept(signal) ?: continue
                     bluetoothSession = accepted
                     val index = signal.payload.toIntOrNull() ?: continue
                     if (index !in 0..8) continue
@@ -85,7 +84,8 @@ class GameViewModel : ViewModel() {
         val updated = runCatching { current.match.play(index) }.getOrNull() ?: return
         _state.value = current.copy(match = updated)
         if (updated.mode == GameMode.BLUETOOTH) {
-            val sequence = ++bluetoothSequence
+            val sequence = (bluetoothSession?.lastAcceptedSequence ?: bluetoothSequence) + 1L
+            bluetoothSequence = sequence
             val signal = BluetoothSignal(
                 matchId = bluetoothMatchId,
                 messageId = UUID.randomUUID().toString(),

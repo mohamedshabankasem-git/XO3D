@@ -110,22 +110,56 @@ fun GameScreen(
                 if (state.match.mode == GameMode.BLUETOOTH && state.connectionStatus.contains("Connection lost")) {
                     OutlinedButton(onClick = onReconnect) { Text("Reconnect") }
                 }
-                Text(
-                    if (state.match.mode == GameMode.SOLO) "You: X    •    Computer: O"
-                    else "Player X    •    Player O",
-                    style = MaterialTheme.typography.titleMedium
-                )
+                if (state.match.mode != GameMode.LOCAL) {
+                    Text(
+                        if (state.match.mode == GameMode.SOLO) "You: X    •    Computer: O"
+                        else "Player X    •    Player O",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
             }
 
-            Spacer(Modifier.weight(0.22f))
-            GameBoard3D(
-                state.match.board.cells,
-                !state.match.board.isFinished && !state.isThinking && state.connectionStatus != "Connection lost" && state.connectionStatus != "Reconnecting…",
-                onMove,
-                isFlat = state.match.mode == GameMode.LOCAL,
-                modifier = Modifier.fillMaxWidth().aspectRatio(1f)
-            )
-            Spacer(Modifier.weight(0.12f))
+            if (state.match.mode == GameMode.LOCAL) {
+                // Two players sit on opposite sides of the same device:
+                // keep the board centered and orient each name toward its player.
+                Box(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "Player O",
+                        modifier = Modifier.align(Alignment.TopCenter)
+                            .padding(top = 12.dp)
+                            .graphicsLayer { rotationZ = 180f },
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                    GameBoard3D(
+                        state.match.board.cells,
+                        !state.match.board.isFinished && !state.isThinking,
+                        onMove,
+                        isFlat = true,
+                        modifier = Modifier.fillMaxWidth().aspectRatio(1f)
+                    )
+                    Text(
+                        "Player X",
+                        modifier = Modifier.align(Alignment.BottomCenter)
+                            .padding(bottom = 12.dp),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            } else {
+                Spacer(Modifier.weight(0.22f))
+                GameBoard3D(
+                    state.match.board.cells,
+                    !state.match.board.isFinished && !state.isThinking && state.connectionStatus != "Connection lost" && state.connectionStatus != "Reconnecting…",
+                    onMove,
+                    isFlat = false,
+                    modifier = Modifier.fillMaxWidth().aspectRatio(1f)
+                )
+                Spacer(Modifier.weight(0.12f))
+            }
             Text(
                 if (state.match.board.isFinished) "Match finished"
                 else "Tap an empty tile to make your move.",

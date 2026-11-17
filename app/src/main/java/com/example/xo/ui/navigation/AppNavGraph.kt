@@ -29,8 +29,8 @@ fun AppNavGraph(vm: GameViewModel = viewModel()) {
 
     if (showBluetoothLobby && !playing) {
         BluetoothLobbyScreen(
-            onConnected = { channel, isHost, matchId ->
-                vm.attachBluetooth(channel, isHost, matchId)
+            onConnected = { channel, isHost, matchId, reconnect ->
+                vm.attachBluetooth(channel, isHost, matchId, reconnect)
                 showBluetoothLobby = false
                 showResult = false
                 playing = true
@@ -50,6 +50,7 @@ fun AppNavGraph(vm: GameViewModel = viewModel()) {
         GameScreen(
             state = state,
             onMove = vm::play,
+            onReconnect = vm::reconnect,
             onRestart = {
                 vm.restart()
                 showResult = false

@@ -1,5 +1,6 @@
 package com.example.xo.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -29,6 +30,34 @@ fun GameScreen(
     onBack: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
+    var showExitConfirmation by remember { mutableStateOf(false) }
+
+    // Intercept the Android system Back action while a match is open.
+    BackHandler(enabled = true) {
+        menuExpanded = false
+        showExitConfirmation = true
+    }
+
+    if (showExitConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showExitConfirmation = false },
+            title = { Text("الخروج من اللعبة؟") },
+            text = { Text("هل تريد الخروج من اللعبة؟") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showExitConfirmation = false
+                    onBack()
+                }) {
+                    Text("خروج")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitConfirmation = false }) {
+                    Text("البقاء")
+                }
+            }
+        )
+    }
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -60,7 +89,7 @@ fun GameScreen(
                             text = { Text("⌂", style = MaterialTheme.typography.headlineSmall) },
                             onClick = {
                                 menuExpanded = false
-                                onBack()
+                                showExitConfirmation = true
                             }
                         )
                     }

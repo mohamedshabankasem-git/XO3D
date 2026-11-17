@@ -122,18 +122,23 @@ class GameViewModel : ViewModel() {
                         matchId = bluetoothMatchId,
                         messageId = UUID.randomUUID().toString(),
                         type = SignalType.GAME_STATE,
-                        payload = "${match.currentPlayer.name}:${match.board.encode()}"
+                        payload = "${match.currentPlayer.name}:${match.board.encode()}:${bluetoothSession?.lastAcceptedSequence ?: bluetoothSequence}"
                     ))
                 } else {
                     val snapshot = channel.receive()
                     check(snapshot.type == SignalType.GAME_STATE && snapshot.matchId == bluetoothMatchId) {
                         "The host did not send the current match state."
                     }
-                    val parts = snapshot.payload.split(":", limit = 2)
-                    check(parts.size == 2 && parts[0] in listOf("X", "O")) { "Invalid match state." }
-                    val accepted = bluetoothSession?.accept(snapshot)
-                    check(accepted != null) { "Duplicate or invalid match state." }
-                    bluetoothSession = accepted
+                    val parts = snapshot.payload.split(":", limit = 3)
+                    check(parts.size == 3 && parts[0] in listOf("X", "O")) { "Invalid match state." }
+                    val restoredSequence = parts[2].toLongOrNull()
+                    check(restoredSequence != null && restoredSequence >= 0L) { "Invalid match sequence." }
+                    bluetoothSequence = restoredSequence
+                    bluetoothSession = BluetoothGameSession(
+                        matchId = bluetoothMatchId,
+                        isHost = false,
+                        lastAcceptedSequence = restoredSequence
+                    )
                     _state.value = _state.value.copy(
                         match = Match(board = Board.from(parts[1]), currentPlayer = Cell.valueOf(parts[0]), mode = GameMode.BLUETOOTH)
                     )

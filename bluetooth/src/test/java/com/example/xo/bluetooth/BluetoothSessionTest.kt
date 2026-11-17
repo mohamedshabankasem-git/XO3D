@@ -13,8 +13,6 @@ class BluetoothSessionTest {
   val state=BluetoothGameSession("game",true).accept(first)!!
   assertEquals(2L,state.accept(second)!!.lastAcceptedSequence)
  }
-}
-
  @Test fun acceptsResetWithoutResettingMoveSequence() {
   val first=BluetoothSignal(matchId="game",messageId="m1",type=SignalType.MOVE,sequence=1,payload="0")
   val reset=BluetoothSignal(matchId="game",messageId="reset",type=SignalType.GAME_START,payload="RESET")
@@ -25,3 +23,4 @@ class BluetoothSessionTest {
   assertNull(afterReset.accept(reset))
   assertEquals(2L,afterReset.accept(second)!!.lastAcceptedSequence)
  }
+}

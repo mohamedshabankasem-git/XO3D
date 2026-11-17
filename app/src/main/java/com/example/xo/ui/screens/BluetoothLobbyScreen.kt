@@ -64,6 +64,17 @@ fun BluetoothLobbyScreen(
         if (selectedAddress == null) selectedAddress = pairedDevices.firstOrNull()?.address
     }
 
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
+        if (result.values.all { it }) {
+            refreshPaired()
+            message = "Permission granted. Search for a nearby device or create a game."
+        } else {
+            message = "Bluetooth permissions are required to discover and connect to devices."
+        }
+    }
+
     fun requestPermissions() {
         val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN)
@@ -75,6 +86,13 @@ fun BluetoothLobbyScreen(
             return
         }
         permissionLauncher.launch(permissions)
+    }
+
+    val discoverableLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode > 0) startHost()
+        else message = "The phone must be discoverable so the other player can find it."
     }
 
     fun startHost() {
@@ -106,24 +124,6 @@ fun BluetoothLobbyScreen(
                 busy = false
             }
         }
-    }
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { result ->
-        if (result.values.all { it }) {
-            refreshPaired()
-            message = "Permission granted. Search for a nearby device or create a game."
-        } else {
-            message = "Bluetooth permissions are required to discover and connect to devices."
-        }
-    }
-
-    val discoverableLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode > 0) startHost()
-        else message = "The phone must be discoverable so the other player can find it."
     }
 
     @SuppressLint("MissingPermission")

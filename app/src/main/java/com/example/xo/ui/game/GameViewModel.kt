@@ -139,8 +139,9 @@ class GameViewModel : ViewModel() {
                     )
                 }
                 bluetoothChannel = channel
+                val localMark = if (bluetoothIsHost) Cell.X else Cell.O
                 _state.value = _state.value.copy(
-                    connectionStatus = if (bluetoothIsHost) "Your turn" else if (_state.value.match.currentPlayer == Cell.O) "Your turn" else "Opponent turn"
+                    connectionStatus = if (_state.value.match.currentPlayer == localMark) "Your turn" else "Opponent turn"
                 )
                 listenForBluetoothMessages(channel)
             } catch (error: Exception) {

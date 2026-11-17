@@ -16,7 +16,6 @@ class BluetoothClientManager(private val adapter: BluetoothAdapter) : Closeable 
     suspend fun connect(device: BluetoothDevice, serviceId: UUID): BluetoothSocket =
         withContext(Dispatchers.IO) {
             close()
-            adapter.cancelDiscovery()
             val socket = device.createRfcommSocketToServiceRecord(serviceId)
             try {
                 socket.connect()

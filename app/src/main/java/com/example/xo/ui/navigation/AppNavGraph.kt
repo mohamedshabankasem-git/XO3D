@@ -1,5 +1,9 @@
 package com.example.xo.ui.navigation
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.xo.engine.Difficulty
@@ -16,7 +20,37 @@ fun AppNavGraph(vm: GameViewModel = viewModel()) {
     var playing by remember { mutableStateOf(false) }
     var showResult by remember { mutableStateOf(false) }
     var showBluetoothLobby by remember { mutableStateOf(false) }
+    var showExitConfirmation by remember { mutableStateOf(false) }
     val state by vm.state.collectAsState()
+
+    // On the home screen, Back asks before exiting. On secondary screens,
+    // Back returns to the home screen without showing the exit dialog.
+    BackHandler(enabled = !playing) {
+        if (showBluetoothLobby) {
+            showBluetoothLobby = false
+        } else {
+            showExitConfirmation = true
+        }
+    }
+
+    if (showExitConfirmation && !playing && !showBluetoothLobby) {
+        AlertDialog(
+            onDismissRequest = { showExitConfirmation = false },
+            title = { Text("الخروج من اللعبة؟") },
+            text = { Text("هل تريد الخروج من اللعبة؟") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showExitConfirmation = false
+                    // Allow the system Back action to finish the activity.
+                    // The host application handles the actual activity exit.
+                    android.os.Process.killProcess(android.os.Process.myPid())
+                }) { Text("خروج") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitConfirmation = false }) { Text("البقاء") }
+            }
+        )
+    }
 
     LaunchedEffect(playing, state.match.board.isFinished, state.match) {
         if (playing && state.match.board.isFinished) {

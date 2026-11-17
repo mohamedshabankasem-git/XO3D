@@ -32,7 +32,7 @@ private val XO_SERVICE_ID: UUID = UUID.fromString("9f7c2d10-6b3a-4e8f-a1c5-3d2e7
 
 @Composable
 fun BluetoothLobbyScreen(
-    onConnected: (BluetoothSocketChannel, Boolean, String) -> Unit,
+    onConnected: (BluetoothSocketChannel, Boolean, String, suspend () -> BluetoothSocketChannel) -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -101,16 +101,20 @@ fun BluetoothLobbyScreen(
             busy = true
             message = "Waiting for the other player to connect…"
             val host = BluetoothHostManager(adapter)
-            try {
+            val matchId = UUID.randomUUID().toString()
+            suspend fun acceptPlayer(): BluetoothSocketChannel {
                 val socket = host.awaitPlayer("XO3D Multiplayer", XO_SERVICE_ID)
                 val channel = BluetoothSocketChannel(socket)
-                val matchId = UUID.randomUUID().toString()
                 channel.send(BluetoothSignal(matchId = matchId, messageId = UUID.randomUUID().toString(), type = SignalType.CONNECT))
                 withTimeout(20_000) {
                     val reply = channel.receive()
                     check(reply.type == SignalType.CONNECTED && reply.matchId == matchId) { "Invalid player handshake." }
                 }
-                onConnected(channel, true, matchId)
+                return channel
+            }
+            try {
+                val channel = acceptPlayer()
+                onConnected(channel, true, matchId) { acceptPlayer() }
             } catch (error: Exception) {
                 host.close()
                 message = error.message ?: "Could not create the Bluetooth game."
@@ -207,13 +211,18 @@ fun BluetoothLobbyScreen(
             busy = true
             message = "Connecting to ${device.name ?: device.address}…"
             val client = BluetoothClientManager(adapter)
-            try {
+            suspend fun connectToHost(expectedMatchId: String? = null): Pair<BluetoothSocketChannel, String> {
                 val socket = client.connect(device, XO_SERVICE_ID)
                 val channel = BluetoothSocketChannel(socket)
                 val hello = withTimeout(20_000) { channel.receive() }
                 check(hello.type == SignalType.CONNECT && hello.matchId.isNotBlank()) { "The other device did not start an XO3D game." }
+                if (expectedMatchId != null) check(hello.matchId == expectedMatchId) { "The host started a different game." }
                 channel.send(BluetoothSignal(matchId = hello.matchId, messageId = UUID.randomUUID().toString(), type = SignalType.CONNECTED))
-                onConnected(channel, false, hello.matchId)
+                return channel to hello.matchId
+            }
+            try {
+                val (channel, matchId) = connectToHost()
+                onConnected(channel, false, matchId) { connectToHost(matchId).first }
             } catch (error: Exception) {
                 client.close()
                 message = error.message ?: "Could not connect to the selected device."

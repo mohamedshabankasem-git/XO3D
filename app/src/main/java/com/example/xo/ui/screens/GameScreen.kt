@@ -31,7 +31,7 @@ fun GameScreen(
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
-            Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 12.dp),
+            Modifier.fillMaxSize().padding(start = 18.dp, end = 18.dp, top = 28.dp, bottom = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(
@@ -41,22 +41,22 @@ fun GameScreen(
             ) {
                 Text("XO3D", style = MaterialTheme.typography.titleLarge)
                 Box {
-                    TextButton(onClick = { menuExpanded = true }) {
-                        Text("Menu  ⋮")
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Text("⋮", style = MaterialTheme.typography.headlineMedium)
                     }
                     DropdownMenu(
                         expanded = menuExpanded,
                         onDismissRequest = { menuExpanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Restart match") },
+                            text = { Text("↻", style = MaterialTheme.typography.headlineSmall) },
                             onClick = {
                                 menuExpanded = false
                                 onRestart()
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Back to home") },
+                            text = { Text("⌂", style = MaterialTheme.typography.headlineSmall) },
                             onClick = {
                                 menuExpanded = false
                                 onBack()
@@ -84,14 +84,14 @@ fun GameScreen(
                 )
             }
 
-            Spacer(Modifier.weight(0.12f))
+            Spacer(Modifier.weight(0.22f))
             GameBoard3D(
                 state.match.board.cells,
                 !state.match.board.isFinished && !state.isThinking,
                 onMove,
                 Modifier.fillMaxWidth().aspectRatio(1f)
             )
-            Spacer(Modifier.weight(0.22f))
+            Spacer(Modifier.weight(0.12f))
             Text(
                 if (state.match.board.isFinished) "Match finished"
                 else "Tap an empty tile to make your move.",

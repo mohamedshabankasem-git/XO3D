@@ -57,9 +57,19 @@ class GameViewModel : ViewModel() {
             try {
                 while (true) {
                     val signal = channel.receive()
-                    if (signal.matchId != bluetoothMatchId || signal.type != SignalType.MOVE) continue
+                    if (signal.matchId != bluetoothMatchId) continue
                     val accepted = bluetoothSession?.accept(signal) ?: continue
                     bluetoothSession = accepted
+                    if (signal.type == SignalType.GAME_START && signal.payload == "RESET") {
+                        val current = _state.value
+                        _state.value = current.copy(
+                            match = current.match.reset(),
+                            isThinking = false,
+                            connectionStatus = if (bluetoothIsHost) "Your turn" else "Opponent turn"
+                        )
+                        continue
+                    }
+                    if (signal.type != SignalType.MOVE) continue
                     val index = signal.payload.toIntOrNull() ?: continue
                     if (index !in 0..8) continue
                     val current = _state.value
@@ -118,7 +128,27 @@ class GameViewModel : ViewModel() {
 
     fun restart() {
         val current = _state.value
-        _state.value = current.copy(match = current.match.reset(), isThinking = false)
+        _state.value = current.copy(
+            match = current.match.reset(),
+            isThinking = false,
+            connectionStatus = if (current.match.mode == GameMode.BLUETOOTH) {
+                if (bluetoothIsHost) "Your turn" else "Opponent turn"
+            } else current.connectionStatus
+        )
+        if (current.match.mode == GameMode.BLUETOOTH) {
+            val signal = BluetoothSignal(
+                matchId = bluetoothMatchId,
+                messageId = UUID.randomUUID().toString(),
+                type = SignalType.GAME_START,
+                payload = "RESET"
+            )
+            bluetoothSession = bluetoothSession?.accept(signal)
+            viewModelScope.launch {
+                runCatching { bluetoothChannel?.send(signal) }.onFailure {
+                    _state.value = _state.value.copy(connectionStatus = "Connection lost")
+                }
+            }
+        }
     }
 
     fun disconnectBluetooth() {

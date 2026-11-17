@@ -116,9 +116,31 @@ class GameViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val channel = reconnect()
+                if (bluetoothIsHost) {
+                    val match = _state.value.match
+                    channel.send(BluetoothSignal(
+                        matchId = bluetoothMatchId,
+                        messageId = UUID.randomUUID().toString(),
+                        type = SignalType.GAME_STATE,
+                        payload = "${match.currentPlayer.name}:${match.board.encode()}"
+                    ))
+                } else {
+                    val snapshot = channel.receive()
+                    check(snapshot.type == SignalType.GAME_STATE && snapshot.matchId == bluetoothMatchId) {
+                        "The host did not send the current match state."
+                    }
+                    val parts = snapshot.payload.split(":", limit = 2)
+                    check(parts.size == 2 && parts[0] in listOf("X", "O")) { "Invalid match state." }
+                    val accepted = bluetoothSession?.accept(snapshot)
+                    check(accepted != null) { "Duplicate or invalid match state." }
+                    bluetoothSession = accepted
+                    _state.value = _state.value.copy(
+                        match = Match(board = Board.from(parts[1]), currentPlayer = Cell.valueOf(parts[0]), mode = GameMode.BLUETOOTH)
+                    )
+                }
                 bluetoothChannel = channel
                 _state.value = _state.value.copy(
-                    connectionStatus = if (bluetoothIsHost) "Your turn" else "Opponent turn"
+                    connectionStatus = if (bluetoothIsHost) "Your turn" else if (_state.value.match.currentPlayer == Cell.O) "Your turn" else "Opponent turn"
                 )
                 listenForBluetoothMessages(channel)
             } catch (error: Exception) {

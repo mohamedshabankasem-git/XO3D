@@ -123,7 +123,7 @@ fun GameScreen(
                 !state.match.board.isFinished && !state.isThinking && state.connectionStatus != "Connection lost" && state.connectionStatus != "Reconnecting…",
                 onMove,
                 isFlat = state.match.mode == GameMode.LOCAL,
-                Modifier.fillMaxWidth().aspectRatio(1f)
+                modifier = Modifier.fillMaxWidth().aspectRatio(1f)
             )
             Spacer(Modifier.weight(0.12f))
             Text(

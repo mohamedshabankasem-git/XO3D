@@ -7,7 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.xo.engine.Difficulty
 import com.example.xo.engine.GameMode
-@Composable fun StartScreen(onStart:(GameMode,Difficulty)->Unit) {
+@Composable fun StartScreen(onStart:(GameMode,Difficulty)->Unit, onBluetooth:()->Unit) {
  var difficulty by remember { mutableStateOf(Difficulty.MEDIUM) }
  Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background) {
   Column(Modifier.fillMaxSize().padding(28.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center) {
@@ -20,7 +20,7 @@ import com.example.xo.engine.GameMode
    Spacer(Modifier.height(10.dp))
    OutlinedButton(onClick={onStart(GameMode.LOCAL,difficulty)},modifier=Modifier.fillMaxWidth()) { Text("Two Players – Same Device") }
    Spacer(Modifier.height(10.dp))
-   OutlinedButton(onClick={},enabled=false,modifier=Modifier.fillMaxWidth()) { Text("Bluetooth Multiplayer – next phase") }
+   OutlinedButton(onClick=onBluetooth,modifier=Modifier.fillMaxWidth()) { Text("Bluetooth Multiplayer") }
   }
  }
 }

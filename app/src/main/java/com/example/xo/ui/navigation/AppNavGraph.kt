@@ -1,6 +1,10 @@
 package com.example.xo.ui.navigation
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.activity.compose.BackHandler
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -22,6 +26,7 @@ fun AppNavGraph(vm: GameViewModel = viewModel()) {
     var showBluetoothLobby by remember { mutableStateOf(false) }
     var showExitConfirmation by remember { mutableStateOf(false) }
     val state by vm.state.collectAsState()
+    val activity = LocalContext.current.findActivity()
 
     // On the home screen, Back asks before exiting. On secondary screens,
     // Back returns to the home screen without showing the exit dialog.
@@ -41,9 +46,7 @@ fun AppNavGraph(vm: GameViewModel = viewModel()) {
             confirmButton = {
                 TextButton(onClick = {
                     showExitConfirmation = false
-                    // Allow the system Back action to finish the activity.
-                    // The host application handles the actual activity exit.
-                    android.os.Process.killProcess(android.os.Process.myPid())
+                    activity?.finish()
                 }) { Text("خروج") }
             },
             dismissButton = {
@@ -105,4 +108,10 @@ fun AppNavGraph(vm: GameViewModel = viewModel()) {
             onBluetooth = { showBluetoothLobby = true }
         )
     }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

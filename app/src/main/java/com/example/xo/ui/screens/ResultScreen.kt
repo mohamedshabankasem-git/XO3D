@@ -11,7 +11,7 @@ import com.example.xo.ui.game.GameUiState
 @Composable fun ResultScreen(state:GameUiState,onAgain:()->Unit,onHome:()->Unit) {
  BackHandler(enabled = true, onBack = onHome)
  val result=when(state.match.board.winner) { Cell.X -> "X wins"; Cell.O -> "O wins"; else -> "It's a draw" }
- Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background) {
+ Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background.copy(alpha = 0.40f)) {
   Column(Modifier.fillMaxSize().padding(28.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center) {
    Text("MATCH COMPLETE",style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.secondary)
    Spacer(Modifier.height(16.dp))

@@ -8,6 +8,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Manual runs started from main must build the actual project branch.
+          # Pull-request runs keep the PR merge commit selected by GitHub.
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'build/xo3d-foundation' || github.sha }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -22,6 +26,13 @@ jobs:
           echo "/opt/gradle-8.9/bin" >> "$GITHUB_PATH"
       - name: Install Android platform
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Verify checked-out Gradle project
+        run: |
+          test -f settings.gradle.kts
+          test -f build.gradle.kts
+          test -d app
+          pwd
+          ls -la
       - name: Run unit tests
         run: gradle :engine:test :bluetooth:testDebugUnitTest :app:testDebugUnitTest
       - run: gradle :app:lintDebug

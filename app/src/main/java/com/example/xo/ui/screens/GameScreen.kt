@@ -96,6 +96,11 @@ fun GameScreen(
                 }
             }
 
+            Text(
+                "Wins  X: ${state.winsX}  •  O: ${state.winsO}",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.secondary
+            )
             Spacer(Modifier.height(10.dp))
             Column(
                 modifier = Modifier.fillMaxWidth(),

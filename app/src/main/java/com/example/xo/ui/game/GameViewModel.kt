@@ -52,7 +52,7 @@ class GameViewModel : ViewModel() {
         bluetoothIsHost = isHost
         bluetoothSequence = 0L
         bluetoothSession = BluetoothGameSession(matchId, isHost)
-        _state.value = GameUiState(Match(mode = GameMode.BLUETOOTH), connectionStatus = "Connected • You are ${if (isHost) "X" else "O"}")
+        _state.value = GameUiState(Match(mode = GameMode.BLUETOOTH), connectionStatus = if (isHost) "Your turn" else "Opponent turn")
         receiveJob = viewModelScope.launch {
             try {
                 while (true) {
@@ -66,7 +66,8 @@ class GameViewModel : ViewModel() {
                     val remoteMark = if (bluetoothIsHost) Cell.O else Cell.X
                     if (current.match.currentPlayer != remoteMark || current.match.board.isFinished) continue
                     val updated = runCatching { current.match.play(index) }.getOrNull() ?: continue
-                    _state.value = current.copy(match = updated, connectionStatus = "Connected • Player ${updated.currentPlayer}'s turn")
+                    val localMark = if (bluetoothIsHost) Cell.X else Cell.O
+                    _state.value = current.copy(match = updated, connectionStatus = if (updated.currentPlayer == localMark) "Your turn" else "Opponent turn")
                 }
             } catch (error: Exception) {
                 _state.value = _state.value.copy(connectionStatus = "Connection lost")
@@ -84,6 +85,8 @@ class GameViewModel : ViewModel() {
         val updated = runCatching { current.match.play(index) }.getOrNull() ?: return
         _state.value = current.copy(match = updated)
         if (updated.mode == GameMode.BLUETOOTH) {
+            val localMark = if (bluetoothIsHost) Cell.X else Cell.O
+            _state.value = _state.value.copy(connectionStatus = if (updated.currentPlayer == localMark) "Your turn" else "Opponent turn")
             val sequence = (bluetoothSession?.lastAcceptedSequence ?: bluetoothSequence) + 1L
             bluetoothSequence = sequence
             val signal = BluetoothSignal(

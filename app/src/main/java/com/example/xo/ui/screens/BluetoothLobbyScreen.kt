@@ -2,10 +2,14 @@ package com.example.xo.ui.screens
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -36,44 +40,50 @@ fun BluetoothLobbyScreen(
     val manager = remember(context) { context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager }
     val adapter = remember(manager) { manager.adapter }
     val scope = rememberCoroutineScope()
-    var devices by remember { mutableStateOf<List<BluetoothDevice>>(emptyList()) }
-    var selected by remember { mutableStateOf<BluetoothDevice?>(null) }
-    var message by remember { mutableStateOf("Pair the two phones in Android Bluetooth settings first.") }
+    var pairedDevices by remember { mutableStateOf<List<BluetoothDevice>>(emptyList()) }
+    var nearbyDevices by remember { mutableStateOf<List<BluetoothDevice>>(emptyList()) }
+    var selectedAddress by remember { mutableStateOf<String?>(null) }
+    var message by remember { mutableStateOf("Pairing is optional: nearby devices can now be discovered here.") }
     var busy by remember { mutableStateOf(false) }
+    var discovering by remember { mutableStateOf(false) }
 
-    fun hasConnectPermission(): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
-            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+    fun hasPermissions(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            return ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED
+        }
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    }
 
     @SuppressLint("MissingPermission")
-    fun refreshDevices() {
-        if (adapter == null || !hasConnectPermission()) return
-        devices = runCatching { adapter.bondedDevices.orEmpty().toList().sortedBy { it.name ?: it.address } }
+    fun refreshPaired() {
+        if (adapter == null || !hasPermissions()) return
+        pairedDevices = runCatching { adapter.bondedDevices.orEmpty().toList().sortedBy { it.name ?: it.address } }
             .getOrDefault(emptyList())
-        if (selected !in devices) selected = devices.firstOrNull()
+        if (selectedAddress == null) selectedAddress = pairedDevices.firstOrNull()?.address
     }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) refreshDevices() else message = "Bluetooth permission is required to continue."
-    }
-
-    LaunchedEffect(adapter) {
-        if (adapter == null) message = "This device does not support Bluetooth."
-        else if (hasConnectPermission()) refreshDevices()
-        else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            permissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+    fun requestPermissions() {
+        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+        } else emptyArray()
+        if (permissions.isEmpty()) {
+            refreshPaired()
+            return
         }
+        permissionLauncher.launch(permissions)
     }
 
-    fun connectAsHost() {
-        if (adapter == null || !hasConnectPermission()) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) permissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+    fun startHost() {
+        if (adapter == null || !hasPermissions()) {
+            requestPermissions()
             return
         }
         if (!adapter.isEnabled) {
-            message = "Turn on Bluetooth from Android quick settings, then try again."
+            message = "Turn on Bluetooth, then try again."
             return
         }
         scope.launch {
@@ -98,16 +108,101 @@ fun BluetoothLobbyScreen(
         }
     }
 
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
+        if (result.values.all { it }) {
+            refreshPaired()
+            message = "Permission granted. Search for a nearby device or create a game."
+        } else {
+            message = "Bluetooth permissions are required to discover and connect to devices."
+        }
+    }
+
+    val discoverableLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode > 0) startHost()
+        else message = "The phone must be discoverable so the other player can find it."
+    }
+
     @SuppressLint("MissingPermission")
-    fun joinDevice(device: BluetoothDevice) {
-        if (adapter == null || !hasConnectPermission()) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) permissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+    fun startDiscovery() {
+        if (adapter == null) {
+            message = "This device does not support Bluetooth."
+            return
+        }
+        if (!hasPermissions()) {
+            requestPermissions()
             return
         }
         if (!adapter.isEnabled) {
-            message = "Turn on Bluetooth from Android quick settings, then try again."
+            message = "Turn on Bluetooth, then search again."
             return
         }
+        nearbyDevices = emptyList()
+        discovering = true
+        message = "Searching for nearby Bluetooth devices…"
+        if (!adapter.startDiscovery()) {
+            discovering = false
+            message = "Could not start discovery. Turn Bluetooth off and on, then retry."
+        }
+    }
+
+    DisposableEffect(adapter) {
+        if (adapter == null) return@DisposableEffect onDispose { }
+        val receiver = object : BroadcastReceiver() {
+            @SuppressLint("MissingPermission")
+            override fun onReceive(receiverContext: Context?, intent: Intent?) {
+                when (intent?.action) {
+                    BluetoothDevice.ACTION_FOUND -> {
+                        val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                        }
+                        if (device != null && nearbyDevices.none { it.address == device.address } &&
+                            pairedDevices.none { it.address == device.address }) {
+                            nearbyDevices = (nearbyDevices + device).sortedBy { it.name ?: it.address }
+                        }
+                    }
+                    BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
+                        discovering = false
+                        message = if (nearbyDevices.isEmpty()) "Search finished. No new devices found; try again or choose a paired device."
+                        else "Found ${nearbyDevices.size} nearby device(s). Select one to connect."
+                    }
+                }
+            }
+        }
+        val filter = IntentFilter().apply {
+            addAction(BluetoothDevice.ACTION_FOUND)
+            addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
+        }
+        ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_EXPORTED)
+        onDispose {
+            runCatching { context.unregisterReceiver(receiver) }
+            if (hasPermissions()) runCatching { adapter.cancelDiscovery() }
+        }
+    }
+
+    LaunchedEffect(adapter) {
+        if (adapter == null) message = "This device does not support Bluetooth."
+        else if (hasPermissions()) refreshPaired()
+        else requestPermissions()
+    }
+
+    @SuppressLint("MissingPermission")
+    fun joinDevice(device: BluetoothDevice) {
+        if (adapter == null || !hasPermissions()) {
+            requestPermissions()
+            return
+        }
+        if (!adapter.isEnabled) {
+            message = "Turn on Bluetooth, then try again."
+            return
+        }
+        runCatching { adapter.cancelDiscovery() }
         scope.launch {
             busy = true
             message = "Connecting to ${device.name ?: device.address}…"
@@ -127,39 +222,56 @@ fun BluetoothLobbyScreen(
         }
     }
 
+    val allDevices = (pairedDevices + nearbyDevices).distinctBy { it.address }
+    val selectedDevice = allDevices.firstOrNull { it.address == selectedAddress }
+
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().padding(22.dp)) {
             Text("Bluetooth multiplayer", style = MaterialTheme.typography.headlineSmall)
             Spacer(Modifier.height(8.dp))
             Text(message, style = MaterialTheme.typography.bodyMedium)
-            Spacer(Modifier.height(18.dp))
-            Button(onClick = { connectAsHost() }, enabled = !busy && adapter != null, modifier = Modifier.fillMaxWidth()) {
-                Text("Create game  •  Wait for player")
-            }
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(14.dp))
+            Button(
+                onClick = {
+                    if (!hasPermissions()) requestPermissions()
+                    else discoverableLauncher.launch(
+                        Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE)
+                            .putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
+                    )
+                },
+                enabled = !busy && adapter != null,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Create game • Make this phone discoverable") }
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = { startDiscovery() },
+                enabled = !busy && !discovering && adapter != null,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text(if (discovering) "Searching…" else "Search nearby devices") }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Paired devices", style = MaterialTheme.typography.titleMedium)
-                TextButton(onClick = { refreshDevices() }, enabled = !busy) { Text("Refresh") }
+                Text("Available devices", style = MaterialTheme.typography.titleMedium)
+                TextButton(onClick = { refreshPaired() }, enabled = !busy) { Text("Refresh") }
             }
-            if (devices.isEmpty()) {
-                Text("No paired devices found. Pair the phones in Android Bluetooth settings.", style = MaterialTheme.typography.bodySmall)
+            if (allDevices.isEmpty()) {
+                Text("No devices yet. Make the other phone discoverable, then search.", style = MaterialTheme.typography.bodySmall)
             } else {
                 LazyColumn(Modifier.weight(1f)) {
-                    items(devices, key = { it.address }) { device ->
-                        val isSelected = selected?.address == device.address
+                    items(allDevices, key = { it.address }) { device ->
+                        val isSelected = selectedAddress == device.address
+                        val isPaired = pairedDevices.any { it.address == device.address }
                         ListItem(
                             headlineContent = { Text(device.name ?: "Bluetooth device") },
-                            supportingContent = { Text(device.address) },
+                            supportingContent = { Text(if (isPaired) "Paired • ${device.address}" else "Nearby • ${device.address}") },
                             trailingContent = { if (isSelected) Text("Selected", color = MaterialTheme.colorScheme.primary) },
-                            modifier = Modifier.clickable { selected = device }
+                            modifier = Modifier.clickable { selectedAddress = device.address }
                         )
                         HorizontalDivider()
                     }
                 }
                 Spacer(Modifier.height(10.dp))
                 Button(
-                    onClick = { selected?.let { joinDevice(it) } },
-                    enabled = !busy && selected != null,
+                    onClick = { selectedDevice?.let { joinDevice(it) } },
+                    enabled = !busy && selectedDevice != null,
                     modifier = Modifier.fillMaxWidth()
                 ) { Text("Join selected device") }
             }

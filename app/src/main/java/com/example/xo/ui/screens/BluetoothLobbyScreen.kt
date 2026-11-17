@@ -79,7 +79,7 @@ fun BluetoothLobbyScreen(
         val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_ADVERTISE)
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
         } else emptyArray()
         if (permissions.isEmpty()) {
             refreshPaired()

@@ -1,6 +1,8 @@
 package com.example.xo.ui.game
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.content.Context
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.xo.bluetooth.BluetoothGameSession
 import com.example.xo.bluetooth.BluetoothSignal
@@ -19,7 +21,9 @@ import java.util.UUID
 data class GameUiState(
     val match: Match = Match(),
     val isThinking: Boolean = false,
-    val connectionStatus: String = ""
+    val connectionStatus: String = "",
+    val winsX: Int = 0,
+    val winsO: Int = 0
 ) {
     val status: String get() = when {
         match.board.winner != null -> "${match.board.winner} wins!"
@@ -30,9 +34,36 @@ data class GameUiState(
     }
 }
 
-class GameViewModel : ViewModel() {
-    private val _state = MutableStateFlow(GameUiState())
+class GameViewModel(application: Application) : AndroidViewModel(application) {
+    private val preferences = application.getSharedPreferences("xo3d_scores", Context.MODE_PRIVATE)
+    private var winsX = preferences.getInt("wins_x", 0)
+    private var winsO = preferences.getInt("wins_o", 0)
+    private val _state = MutableStateFlow(GameUiState(winsX = winsX, winsO = winsO))
     val state = _state.asStateFlow()
+
+    private fun updateMatch(
+        current: GameUiState,
+        next: Match,
+        connectionStatus: String = current.connectionStatus
+    ): GameUiState {
+        if (!current.match.board.isFinished && next.board.isFinished) {
+            when (next.board.winner) {
+                Cell.X -> winsX++
+                Cell.O -> winsO++
+                else -> Unit
+            }
+            preferences.edit()
+                .putInt("wins_x", winsX)
+                .putInt("wins_o", winsO)
+                .apply()
+        }
+        return current.copy(
+            match = next,
+            connectionStatus = connectionStatus,
+            winsX = winsX,
+            winsO = winsO
+        )
+    }
 
     private var bluetoothChannel: BluetoothSocketChannel? = null
     private var bluetoothMatchId: String = ""
@@ -44,7 +75,7 @@ class GameViewModel : ViewModel() {
 
     fun start(mode: GameMode, difficulty: Difficulty = Difficulty.MEDIUM) {
         disconnectBluetooth()
-        _state.value = GameUiState(Match(mode = mode, difficulty = difficulty))
+        _state.value = GameUiState(Match(mode = mode, difficulty = difficulty), winsX = winsX, winsO = winsO)
     }
 
     fun attachBluetooth(
@@ -61,7 +92,9 @@ class GameViewModel : ViewModel() {
         reconnectAction = reconnect
         _state.value = GameUiState(
             Match(mode = GameMode.BLUETOOTH),
-            connectionStatus = if (isHost) "Your turn" else "Opponent turn"
+            connectionStatus = if (isHost) "Your turn" else "Opponent turn",
+            winsX = winsX,
+            winsO = winsO
         )
         bluetoothChannel = channel
         listenForBluetoothMessages(channel)
@@ -93,9 +126,10 @@ class GameViewModel : ViewModel() {
                     if (current.match.currentPlayer != remoteMark || current.match.board.isFinished) continue
                     val updated = runCatching { current.match.play(index) }.getOrNull() ?: continue
                     val localMark = if (bluetoothIsHost) Cell.X else Cell.O
-                    _state.value = current.copy(
-                        match = updated,
-                        connectionStatus = if (updated.currentPlayer == localMark) "Your turn" else "Opponent turn"
+                    _state.value = updateMatch(
+                        current,
+                        updated,
+                        if (updated.currentPlayer == localMark) "Your turn" else "Opponent turn"
                     )
                 }
             } catch (cancelled: CancellationException) {
@@ -163,7 +197,7 @@ class GameViewModel : ViewModel() {
             if (current.match.currentPlayer != localMark) return
         }
         val updated = runCatching { current.match.play(index) }.getOrNull() ?: return
-        _state.value = current.copy(match = updated)
+        _state.value = updateMatch(current, updated)
         if (updated.mode == GameMode.BLUETOOTH) {
             val localMark = if (bluetoothIsHost) Cell.X else Cell.O
             _state.value = _state.value.copy(connectionStatus = if (updated.currentPlayer == localMark) "Your turn" else "Opponent turn")
@@ -191,7 +225,7 @@ class GameViewModel : ViewModel() {
                 val latest = _state.value
                 if (latest.match != updated) return@launch
                 val next = move?.let { runCatching { latest.match.play(it) }.getOrNull() }
-                _state.value = if (next != null) GameUiState(next) else latest.copy(isThinking = false)
+                _state.value = if (next != null) updateMatch(latest, next).copy(isThinking = false) else latest.copy(isThinking = false)
             }
         }
     }

@@ -11,8 +11,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Manual runs started from main must build the actual project branch.
-          # Pull-request runs keep the PR merge commit selected by GitHub.
           ref: ${{ github.event_name == 'workflow_dispatch' && 'build/xo3d-foundation' || github.sha }}
       - uses: actions/setup-java@v4
         with:
@@ -39,23 +37,30 @@ jobs:
         run: gradle :engine:test :bluetooth:testDebugUnitTest :app:testDebugUnitTest
       - name: Run Release lint
         run: gradle :app:lintRelease
-      - name: Build Release APK
-        run: gradle :app:assembleRelease
-      - name: Locate Release APK
-        id: release-apk
+      # assembleRelease currently produces app-release-unsigned.apk.
+      # A debug variant is signed automatically by Android Gradle Plugin,
+      # so the APK can be installed directly while keeping arm64-v8a only.
+      - name: Build installable ARM64 APK
+        run: gradle :app:assembleDebug
+      - name: Locate installable APK
+        id: installable-apk
         shell: bash
         run: |
           echo "Generated APK files:"
-          find app/build/outputs -type f -name '*.apk' -print
-          APK_PATH="$(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          find app/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' -print
+          APK_PATH="$(find app/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' -print -quit)"
           if [ -z "$APK_PATH" ]; then
-            echo "::error::Gradle completed but no Release APK was found."
+            echo "::error::Gradle completed but no Debug APK was found."
+            exit 1
+          fi
+          if [[ "$APK_PATH" == *unsigned* ]]; then
+            echo "::error::The generated APK is unsigned."
             exit 1
           fi
           echo "path=$APK_PATH" >> "$GITHUB_OUTPUT"
-      - name: Upload Release APK
+      - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: XO3D-release
-          path: ${{ steps.release-apk.outputs.path }}
+          name: XO3D-arm64-installable
+          path: ${{ steps.installable-apk.outputs.path }}
           if-no-files-found: error

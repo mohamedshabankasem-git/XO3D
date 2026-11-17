@@ -19,7 +19,7 @@ fun AppNavGraph(vm: GameViewModel = viewModel()) {
     LaunchedEffect(playing, state.match.board.isFinished, state.match) {
         if (playing && state.match.board.isFinished) {
             // Keep the final move visible before presenting the result actions.
-            delay(900)
+            delay(1200)
             if (playing && state.match.board.isFinished) showResult = true
         } else {
             showResult = false

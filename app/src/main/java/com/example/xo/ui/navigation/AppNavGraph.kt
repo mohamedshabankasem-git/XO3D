@@ -5,6 +5,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.xo.engine.Difficulty
 import com.example.xo.engine.GameMode
 import com.example.xo.ui.game.GameViewModel
+import com.example.xo.ui.screens.BluetoothLobbyScreen
 import com.example.xo.ui.screens.GameScreen
 import com.example.xo.ui.screens.StartScreen
 import com.example.xo.ui.screens.ResultScreen
@@ -14,11 +15,11 @@ import kotlinx.coroutines.delay
 fun AppNavGraph(vm: GameViewModel = viewModel()) {
     var playing by remember { mutableStateOf(false) }
     var showResult by remember { mutableStateOf(false) }
+    var showBluetoothLobby by remember { mutableStateOf(false) }
     val state by vm.state.collectAsState()
 
     LaunchedEffect(playing, state.match.board.isFinished, state.match) {
         if (playing && state.match.board.isFinished) {
-            // Keep the final move visible before presenting the result actions.
             delay(1200)
             if (playing && state.match.board.isFinished) showResult = true
         } else {
@@ -26,11 +27,22 @@ fun AppNavGraph(vm: GameViewModel = viewModel()) {
         }
     }
 
-    if (playing && state.match.board.isFinished && showResult) {
+    if (showBluetoothLobby && !playing) {
+        BluetoothLobbyScreen(
+            onConnected = { channel, isHost, matchId ->
+                vm.attachBluetooth(channel, isHost, matchId)
+                showBluetoothLobby = false
+                showResult = false
+                playing = true
+            },
+            onBack = { showBluetoothLobby = false }
+        )
+    } else if (playing && state.match.board.isFinished && showResult) {
         ResultScreen(state, {
             vm.restart()
             showResult = false
         }, {
+            vm.disconnectBluetooth()
             playing = false
             showResult = false
         })
@@ -43,15 +55,19 @@ fun AppNavGraph(vm: GameViewModel = viewModel()) {
                 showResult = false
             },
             onBack = {
+                vm.disconnectBluetooth()
                 playing = false
                 showResult = false
             }
         )
     } else {
-        StartScreen { mode: GameMode, difficulty: Difficulty ->
-            vm.start(mode, difficulty)
-            showResult = false
-            playing = true
-        }
+        StartScreen(
+            onStart = { mode: GameMode, difficulty: Difficulty ->
+                vm.start(mode, difficulty)
+                showResult = false
+                playing = true
+            },
+            onBluetooth = { showBluetoothLobby = true }
+        )
     }
 }

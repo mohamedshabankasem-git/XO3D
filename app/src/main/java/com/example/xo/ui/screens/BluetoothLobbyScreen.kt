@@ -2,7 +2,6 @@ package com.example.xo.ui.screens
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
@@ -88,13 +87,6 @@ fun BluetoothLobbyScreen(
         permissionLauncher.launch(permissions)
     }
 
-    val discoverableLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode > 0) startHost()
-        else message = "The phone must be discoverable so the other player can find it."
-    }
-
     fun startHost() {
         if (adapter == null || !hasPermissions()) {
             requestPermissions()
@@ -124,6 +116,13 @@ fun BluetoothLobbyScreen(
                 busy = false
             }
         }
+    }
+
+    val discoverableLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode > 0) startHost()
+        else message = "The phone must be discoverable so the other player can find it."
     }
 
     @SuppressLint("MissingPermission")

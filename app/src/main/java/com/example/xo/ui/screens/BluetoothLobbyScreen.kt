@@ -49,7 +49,8 @@ fun BluetoothLobbyScreen(
     fun hasPermissions(): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             return ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED
+                ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_ADVERTISE) == PackageManager.PERMISSION_GRANTED
         }
         return Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
@@ -76,7 +77,7 @@ fun BluetoothLobbyScreen(
 
     fun requestPermissions() {
         val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN)
+            arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_ADVERTISE)
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
         } else emptyArray()

@@ -122,6 +122,7 @@ fun GameScreen(
                 state.match.board.cells,
                 !state.match.board.isFinished && !state.isThinking && state.connectionStatus != "Connection lost" && state.connectionStatus != "Reconnecting…",
                 onMove,
+                isFlat = state.match.mode == GameMode.LOCAL,
                 Modifier.fillMaxWidth().aspectRatio(1f)
             )
             Spacer(Modifier.weight(0.12f))
@@ -140,14 +141,17 @@ private fun GameBoard3D(
     cells: List<Cell>,
     enabled: Boolean,
     onMove: (Int) -> Unit,
+    isFlat: Boolean,
     modifier: Modifier = Modifier
 ) {
     Canvas(
         modifier.clip(RoundedCornerShape(26.dp))
             .background(Color(0xFF172635))
             .graphicsLayer {
-                rotationX = 10f
-                shadowElevation = 18.dp.toPx()
+                // A flat, straight-on board is easier to read from both sides
+                // when two players share the same device.
+                rotationX = if (isFlat) 0f else 10f
+                shadowElevation = if (isFlat) 8.dp.toPx() else 18.dp.toPx()
                 shape = RoundedCornerShape(26.dp)
                 clip = true
             }

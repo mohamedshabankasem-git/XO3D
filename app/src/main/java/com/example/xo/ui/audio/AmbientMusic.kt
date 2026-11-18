@@ -6,6 +6,7 @@ import android.media.AudioTrack
 import kotlin.math.PI
 import kotlin.math.sin
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -119,7 +120,7 @@ fun dynamicWaveBackground(): Color {
  * Natural overlapping water ripples on the start screen.
  * Each touch creates its own expanding, fading ring.
  */
-private data class WaterRipple(val center: Offset, val progress: Animatable)
+private data class WaterRipple(val center: Offset, val progress: Animatable<Float, AnimationVector1D>)
 
 @Composable
 fun Modifier.touchWaveBackground(): Modifier {

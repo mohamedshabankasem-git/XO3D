@@ -24,6 +24,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.xo.bluetooth.*
+import com.example.xo.ui.AppLanguage
+import com.example.xo.ui.translate
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import java.util.UUID
@@ -32,6 +34,7 @@ private val XO_SERVICE_ID: UUID = UUID.fromString("9f7c2d10-6b3a-4e8f-a1c5-3d2e7
 
 @Composable
 fun BluetoothLobbyScreen(
+    language: AppLanguage,
     onConnected: (BluetoothSocketChannel, Boolean, String, suspend () -> BluetoothSocketChannel) -> Unit,
     onBack: () -> Unit
 ) {
@@ -236,9 +239,9 @@ fun BluetoothLobbyScreen(
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().padding(22.dp)) {
-            Text("Bluetooth multiplayer", style = MaterialTheme.typography.headlineSmall)
+            Text(translate("Bluetooth multiplayer", language), style = MaterialTheme.typography.headlineSmall)
             Spacer(Modifier.height(8.dp))
-            Text(message, style = MaterialTheme.typography.bodyMedium)
+            Text(translate(message, language), style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(14.dp))
             Button(
                 onClick = {
@@ -250,28 +253,28 @@ fun BluetoothLobbyScreen(
                 },
                 enabled = !busy && adapter != null,
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Create game • Make this phone discoverable") }
+            ) { Text(translate("Create game • Make this phone discoverable", language)) }
             Spacer(Modifier.height(8.dp))
             OutlinedButton(
                 onClick = { startDiscovery() },
                 enabled = !busy && !discovering && adapter != null,
                 modifier = Modifier.fillMaxWidth()
-            ) { Text(if (discovering) "Searching…" else "Search nearby devices") }
+            ) { Text(translate(if (discovering) "Searching…" else "Search nearby devices", language)) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Available devices", style = MaterialTheme.typography.titleMedium)
-                TextButton(onClick = { refreshPaired() }, enabled = !busy) { Text("Refresh") }
+                Text(translate("Available devices", language), style = MaterialTheme.typography.titleMedium)
+                TextButton(onClick = { refreshPaired() }, enabled = !busy) { Text(translate("Refresh", language)) }
             }
             if (allDevices.isEmpty()) {
-                Text("No devices yet. Make the other phone discoverable, then search.", style = MaterialTheme.typography.bodySmall)
+                Text(translate("No devices yet. Make the other phone discoverable, then search.", language), style = MaterialTheme.typography.bodySmall)
             } else {
                 LazyColumn(Modifier.weight(1f)) {
                     items(allDevices, key = { it.address }) { device ->
                         val isSelected = selectedAddress == device.address
                         val isPaired = pairedDevices.any { it.address == device.address }
                         ListItem(
-                            headlineContent = { Text(device.name ?: "Bluetooth device") },
-                            supportingContent = { Text(if (isPaired) "Paired • ${device.address}" else "Nearby • ${device.address}") },
-                            trailingContent = { if (isSelected) Text("Selected", color = MaterialTheme.colorScheme.primary) },
+                            headlineContent = { Text(device.name ?: translate("Bluetooth device", language)) },
+                            supportingContent = { Text(translate(if (isPaired) "Paired • ${device.address}" else "Nearby • ${device.address}", language)) },
+                            trailingContent = { if (isSelected) Text(translate("Selected", language), color = MaterialTheme.colorScheme.primary) },
                             modifier = Modifier.clickable { selectedAddress = device.address }
                         )
                         HorizontalDivider()
@@ -282,10 +285,10 @@ fun BluetoothLobbyScreen(
                     onClick = { selectedDevice?.let { joinDevice(it) } },
                     enabled = !busy && selectedDevice != null,
                     modifier = Modifier.fillMaxWidth()
-                ) { Text("Join selected device") }
+                ) { Text(translate("Join selected device", language)) }
             }
             Spacer(Modifier.height(10.dp))
-            OutlinedButton(onClick = onBack, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Back") }
+            OutlinedButton(onClick = onBack, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(translate("Back", language)) }
         }
     }
 }

@@ -11,6 +11,7 @@ import com.example.xo.engine.GameMode
 import com.example.xo.ui.AppLanguage
 import com.example.xo.ui.translate
 import com.example.xo.ui.audio.dynamicWaveBackground
+import com.example.xo.ui.audio.touchWaveBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,7 +25,7 @@ fun StartScreen(
 ) {
     var difficulty by remember { mutableStateOf(Difficulty.MEDIUM) }
     var languageExpanded by remember { mutableStateOf(false) }
-    Surface(Modifier.fillMaxSize(), color = dynamicWaveBackground()) {
+    Surface(Modifier.fillMaxSize().touchWaveBackground(), color = dynamicWaveBackground()) {
         Column(
             Modifier.fillMaxSize().padding(28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,

@@ -1,5 +1,7 @@
 package com.example.xo.ui.screens
 
+import android.media.AudioManager
+import android.media.ToneGenerator
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -19,11 +21,14 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.example.xo.engine.Cell
 import com.example.xo.engine.GameMode
+import com.example.xo.ui.AppLanguage
+import com.example.xo.ui.translate
 import com.example.xo.ui.game.GameUiState
 
 @Composable
 fun GameScreen(
     state: GameUiState,
+    language: AppLanguage,
     onMove: (Int) -> Unit,
     onReconnect: () -> Unit,
     onRestart: () -> Unit,
@@ -41,19 +46,19 @@ fun GameScreen(
     if (showExitConfirmation) {
         AlertDialog(
             onDismissRequest = { showExitConfirmation = false },
-            title = { Text("الخروج من اللعبة؟") },
-            text = { Text("هل تريد الخروج من اللعبة؟") },
+            title = { Text(translate("Exit game?", language)) },
+            text = { Text(translate("Do you want to exit the game?", language)) },
             confirmButton = {
                 TextButton(onClick = {
                     showExitConfirmation = false
                     onBack()
                 }) {
-                    Text("خروج")
+                    Text(translate("Exit", language))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showExitConfirmation = false }) {
-                    Text("البقاء")
+                    Text(translate("Stay", language))
                 }
             }
         )
@@ -72,21 +77,21 @@ fun GameScreen(
                 Text("XO3D", style = MaterialTheme.typography.titleLarge)
                 Box {
                     IconButton(onClick = { menuExpanded = true }) {
-                        Text("⋮", style = MaterialTheme.typography.headlineMedium)
+                        ThreeDMenuIcon("⋮")
                     }
                     DropdownMenu(
                         expanded = menuExpanded,
                         onDismissRequest = { menuExpanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("↻", style = MaterialTheme.typography.headlineSmall) },
+                            text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) { ThreeDMenuIcon("↻"); Text(translate("Restart", language)) } },
                             onClick = {
                                 menuExpanded = false
                                 onRestart()
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("⌂", style = MaterialTheme.typography.headlineSmall) },
+                            text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) { ThreeDMenuIcon("⌂"); Text(translate("Main Menu", language)) } },
                             onClick = {
                                 menuExpanded = false
                                 showExitConfirmation = true
@@ -97,7 +102,7 @@ fun GameScreen(
             }
 
             Text(
-                "Wins  X: ${state.winsX}  •  O: ${state.winsO}",
+                "${translate("Wins", language)}  X: ${state.winsX}  •  O: ${state.winsO}",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.secondary
             )
@@ -107,18 +112,18 @@ fun GameScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    state.status,
+                    translate(state.status, language),
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Spacer(Modifier.height(5.dp))
                 if (state.match.mode == GameMode.BLUETOOTH && state.connectionStatus.contains("Connection lost")) {
-                    OutlinedButton(onClick = onReconnect) { Text("Reconnect") }
+                    OutlinedButton(onClick = onReconnect) { Text(translate("Reconnect", language)) }
                 }
                 if (state.match.mode != GameMode.LOCAL) {
                     Text(
-                        if (state.match.mode == GameMode.SOLO) "You: X    •    Computer: O"
-                        else "Player X    •    Player O",
+                        if (state.match.mode == GameMode.SOLO) translate("You: X    •    Computer: O", language)
+                        else translate("Player X    •    Player O", language),
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
@@ -132,7 +137,7 @@ fun GameScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "Player O",
+                        translate("Player O", language),
                         modifier = Modifier.align(Alignment.TopCenter)
                             .padding(top = 12.dp)
                             .graphicsLayer { rotationZ = 180f },
@@ -147,7 +152,7 @@ fun GameScreen(
                         modifier = Modifier.fillMaxWidth().aspectRatio(1f)
                     )
                     Text(
-                        "Player X",
+                        translate("Player X", language),
                         modifier = Modifier.align(Alignment.BottomCenter)
                             .padding(bottom = 12.dp),
                         style = MaterialTheme.typography.titleMedium,
@@ -166,8 +171,8 @@ fun GameScreen(
                 Spacer(Modifier.weight(0.12f))
             }
             Text(
-                if (state.match.board.isFinished) "Match finished"
-                else "Tap an empty tile to make your move.",
+                if (state.match.board.isFinished) translate("Match finished", language)
+                else translate("Tap an empty tile to make your move.", language),
                 style = MaterialTheme.typography.bodySmall
             )
             Spacer(Modifier.height(8.dp))
@@ -183,6 +188,8 @@ private fun GameBoard3D(
     isFlat: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val clickTone = remember { ToneGenerator(AudioManager.STREAM_MUSIC, 70) }
+    DisposableEffect(clickTone) { onDispose { clickTone.release() } }
     Canvas(
         modifier.clip(RoundedCornerShape(26.dp))
             .background(Color(0xFF172635))
@@ -199,7 +206,11 @@ private fun GameBoard3D(
                     if (enabled) {
                         val col = (p.x / (size.width / 3f)).toInt().coerceIn(0, 2)
                         val row = (p.y / (size.height / 3f)).toInt().coerceIn(0, 2)
-                        onMove(row * 3 + col)
+                        val index = row * 3 + col
+                        if (cells[index] == Cell.EMPTY) {
+                            clickTone.startTone(ToneGenerator.TONE_PROP_BEEP, 65)
+                            onMove(index)
+                        }
                     }
                 }
             }
@@ -232,6 +243,24 @@ private fun GameBoard3D(
                 Cell.O -> drawCircle(Color(0xFFFFC46B), rad, Offset(x,y), style=Stroke(13.dp.toPx()))
                 Cell.EMPTY -> Unit
             }
+        }
+    }
+}
+
+@Composable
+private fun ThreeDMenuIcon(symbol: String) {
+    Surface(
+        modifier = Modifier.size(38.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = Color.Transparent,
+        shadowElevation = 7.dp,
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF8DAFC4))
+    ) {
+        Box(
+            modifier = Modifier.background(Brush.linearGradient(listOf(Color(0xFF5B829B), Color(0xFF172D43)))),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(symbol, color = Color.White, style = MaterialTheme.typography.titleLarge)
         }
     }
 }

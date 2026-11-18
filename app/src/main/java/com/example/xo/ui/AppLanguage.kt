@@ -72,7 +72,9 @@ fun translate(value: String, language: AppLanguage): String {
         "Connection lost" to "انقطع الاتصال",
         "Reconnecting…" to "جارٍ إعادة الاتصال…",
         "Computer is thinking…" to "الكمبيوتر يفكر…",
-        "Draw" to "تعادل"
+        "Draw" to "تعادل",
+        "Music on" to "الموسيقى تعمل",
+        "Music off" to "إيقاف الموسيقى"
     )
     exact[value]?.let { return it }
     if (value.startsWith("Found ") && value.contains(" nearby device(s). Select one to connect.")) {

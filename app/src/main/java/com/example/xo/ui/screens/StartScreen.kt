@@ -11,6 +11,7 @@ import com.example.xo.engine.GameMode
 import com.example.xo.ui.AppLanguage
 import com.example.xo.ui.translate
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StartScreen(
     language: AppLanguage,

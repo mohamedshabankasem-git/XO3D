@@ -52,10 +52,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 Cell.O -> winsO++
                 else -> Unit
             }
-            preferences.edit()
+            // Commit synchronously so the latest score is safely on disk
+            // even if the user immediately leaves or closes the app.
+            check(preferences.edit()
                 .putInt("wins_x", winsX)
                 .putInt("wins_o", winsO)
-                .apply()
+                .commit()) { "Could not save win totals." }
         }
         return current.copy(
             match = next,

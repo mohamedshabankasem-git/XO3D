@@ -139,10 +139,10 @@ fun Modifier.touchWaveBackground(): Modifier {
             val maxRadius = size.maxDimension * 0.72f
             touchOrigins.forEachIndexed { index, origin ->
                 for (ring in 0..3) {
-                    val ringPhase = (phase + ring * 0.25f + index * 0.06f) % 1f
+                    val ringPhase = (phase + ring.toFloat() * 0.25f + index.toFloat() * 0.06f) % 1f
                     val radius = maxRadius * (0.08f + ringPhase * 0.92f)
                     val alpha = (1f - ringPhase) * 0.26f
-                    val hue = (phase * 360f + index * 48f + ring * 70f) % 360f
+                    val hue = (phase * 360f + index.toFloat() * 48f + ring.toFloat() * 70f) % 360f
                     drawCircle(
                         color = Color.hsv(hue, 0.72f, 1f).copy(alpha = alpha),
                         radius = radius,

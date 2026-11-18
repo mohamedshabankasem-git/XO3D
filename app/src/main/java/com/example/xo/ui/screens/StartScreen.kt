@@ -10,6 +10,7 @@ import com.example.xo.engine.Difficulty
 import com.example.xo.engine.GameMode
 import com.example.xo.ui.AppLanguage
 import com.example.xo.ui.translate
+import com.example.xo.ui.audio.dynamicWaveBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -17,17 +18,23 @@ fun StartScreen(
     language: AppLanguage,
     onLanguageChange: (AppLanguage) -> Unit,
     onStart: (GameMode, Difficulty) -> Unit,
-    onBluetooth: () -> Unit
+    onBluetooth: () -> Unit,
+    musicEnabled: Boolean,
+    onMusicToggle: () -> Unit
 ) {
     var difficulty by remember { mutableStateOf(Difficulty.MEDIUM) }
     var languageExpanded by remember { mutableStateOf(false) }
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(Modifier.fillMaxSize(), color = dynamicWaveBackground()) {
         Column(
             Modifier.fillMaxSize().padding(28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopEnd) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onMusicToggle) {
+                    Text(if (musicEnabled) "♫" else "♪", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
+                }
+                Box(Modifier.weight(1f), contentAlignment = Alignment.TopEnd) {
                 ExposedDropdownMenuBox(
                     expanded = languageExpanded,
                     onExpandedChange = { languageExpanded = !languageExpanded }
@@ -53,6 +60,7 @@ fun StartScreen(
                             onLanguageChange(AppLanguage.ENGLISH)
                         })
                     }
+                }
                 }
             }
             Spacer(Modifier.height(16.dp))

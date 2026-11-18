@@ -202,7 +202,7 @@ private fun GameBoard3D(
     isFlat: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val clickTone = remember { ToneGenerator(AudioManager.STREAM_SYSTEM, 18) }
+    val clickTone = remember { ToneGenerator(AudioManager.STREAM_SYSTEM, 52) }
     DisposableEffect(clickTone) { onDispose { clickTone.release() } }
     val transition = rememberInfiniteTransition(label = "boardColorWave")
     val wavePhase by transition.animateFloat(initialValue = 0f, targetValue = (2f * Math.PI).toFloat(), animationSpec = infiniteRepeatable(tween(durationMillis = 12000, easing = LinearEasing)), label = "wavePhase")
@@ -225,7 +225,7 @@ private fun GameBoard3D(
                         val row = (p.y / (size.height / 3f)).toInt().coerceIn(0, 2)
                         val index = row * 3 + col
                         if (cells[index] == Cell.EMPTY) {
-                            clickTone.startTone(ToneGenerator.TONE_PROP_ACK, 22)
+                            clickTone.startTone(ToneGenerator.TONE_PROP_ACK, 45)
                             onMove(index)
                         }
                     }

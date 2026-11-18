@@ -257,6 +257,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun resetWins() {
+        winsX = 0
+        winsO = 0
+        preferences.edit().putInt("wins_x", 0).putInt("wins_o", 0).commit()
+        _state.value = _state.value.copy(winsX = 0, winsO = 0)
+    }
+
     fun disconnectBluetooth() {
         receiveJob?.cancel()
         receiveJob = null

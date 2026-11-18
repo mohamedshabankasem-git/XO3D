@@ -98,13 +98,13 @@ fun AppNavGraph(vm: GameViewModel = viewModel()) {
                     onMove = vm::play,
                     onReconnect = vm::reconnect,
                     onRestart = { vm.restart(); showResult = false },
-                    onBack = { vm.disconnectBluetooth(); playing = false; showResult = false }
+                    onBack = { vm.disconnectBluetooth(); vm.resetWins(); playing = false; showResult = false }
                 )
                 ResultScreen(
                     state = state,
                     language = language,
                     onAgain = { vm.restart(); showResult = false },
-                    onHome = { vm.disconnectBluetooth(); playing = false; showResult = false }
+                    onHome = { vm.disconnectBluetooth(); vm.resetWins(); playing = false; showResult = false }
                 )
             }
         } else if (playing) {
@@ -114,7 +114,7 @@ fun AppNavGraph(vm: GameViewModel = viewModel()) {
                 onMove = vm::play,
                 onReconnect = vm::reconnect,
                 onRestart = { vm.restart(); showResult = false },
-                onBack = { vm.disconnectBluetooth(); playing = false; showResult = false }
+                onBack = { vm.disconnectBluetooth(); vm.resetWins(); playing = false; showResult = false }
             )
         } else {
             StartScreen(

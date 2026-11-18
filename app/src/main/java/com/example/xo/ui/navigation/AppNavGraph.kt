@@ -26,6 +26,7 @@ import com.example.xo.ui.screens.GameScreen
 import com.example.xo.ui.screens.StartScreen
 import com.example.xo.ui.screens.ResultScreen
 import kotlinx.coroutines.delay
+import com.example.xo.ui.audio.AmbientMusic
 
 @Composable
 fun AppNavGraph(vm: GameViewModel = viewModel()) {
@@ -40,6 +41,11 @@ fun AppNavGraph(vm: GameViewModel = viewModel()) {
     var showResult by remember { mutableStateOf(false) }
     var showBluetoothLobby by remember { mutableStateOf(false) }
     var showExitConfirmation by remember { mutableStateOf(false) }
+    var musicEnabled by remember { mutableStateOf(preferences.getBoolean("music_enabled", true)) }
+    val ambientMusic = remember { AmbientMusic() }
+    LaunchedEffect(musicEnabled) { if (musicEnabled) ambientMusic.start() else ambientMusic.stop() }
+    DisposableEffect(ambientMusic) { onDispose { ambientMusic.stop() } }
+    fun toggleMusic() { musicEnabled = !musicEnabled; preferences.edit().putBoolean("music_enabled", musicEnabled).commit() }
     val state by vm.state.collectAsState()
     val activity = context.findActivity()
 
@@ -98,7 +104,9 @@ fun AppNavGraph(vm: GameViewModel = viewModel()) {
                     onMove = vm::play,
                     onReconnect = vm::reconnect,
                     onRestart = { vm.restart(); showResult = false },
-                    onBack = { vm.disconnectBluetooth(); vm.resetWins(); playing = false; showResult = false }
+                    onBack = { vm.disconnectBluetooth(); vm.resetWins(); playing = false; showResult = false },
+                    musicEnabled = musicEnabled,
+                    onMusicToggle = ::toggleMusic
                 )
                 ResultScreen(
                     state = state,
@@ -114,7 +122,9 @@ fun AppNavGraph(vm: GameViewModel = viewModel()) {
                 onMove = vm::play,
                 onReconnect = vm::reconnect,
                 onRestart = { vm.restart(); showResult = false },
-                onBack = { vm.disconnectBluetooth(); vm.resetWins(); playing = false; showResult = false }
+                onBack = { vm.disconnectBluetooth(); vm.resetWins(); playing = false; showResult = false },
+                musicEnabled = musicEnabled,
+                onMusicToggle = ::toggleMusic
             )
         } else {
             StartScreen(
@@ -125,7 +135,9 @@ fun AppNavGraph(vm: GameViewModel = viewModel()) {
                     showResult = false
                     playing = true
                 },
-                onBluetooth = { showBluetoothLobby = true }
+                onBluetooth = { showBluetoothLobby = true },
+                musicEnabled = musicEnabled,
+                onMusicToggle = ::toggleMusic
             )
         }
     }

@@ -13,6 +13,14 @@ import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.ui.graphics.drawscope.Stroke
 
 /**
  * Original synthesized ambient loop (no external/copyrighted recording).
@@ -44,7 +52,7 @@ class AmbientMusic {
             .setTransferMode(AudioTrack.MODE_STREAM)
             .build()
         audioTrack = track
-        track.setVolume(0.22f)
+        track.setVolume(0.42f)
         track.play()
         worker = Thread {
             val buffer = ShortArray(1024)
@@ -98,4 +106,48 @@ fun dynamicWaveBackground(): Color {
         label = "backgroundHue"
     )
     return Color.hsv(hue, 0.42f, 0.19f)
+}
+
+
+/**
+ * Records touch origins without consuming gestures, then paints expanding,
+ * hue-shifting rings behind the screen content.
+ */
+@Composable
+fun Modifier.touchWaveBackground(): Modifier {
+    val touchOrigins = remember { mutableStateListOf<Offset>() }
+    val transition = rememberInfiniteTransition(label = "touchWaves")
+    val phase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(durationMillis = 2200, easing = LinearEasing)),
+        label = "touchWavePhase"
+    )
+    return this
+        .pointerInput(Unit) {
+            awaitEachGesture {
+                while (true) {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    touchOrigins.add(down.position)
+                    if (touchOrigins.size > 7) touchOrigins.removeAt(0)
+                }
+            }
+        }
+        .drawBehind {
+            val maxRadius = size.maxDimension * 0.72f
+            touchOrigins.forEachIndexed { index, origin ->
+                for (ring in 0..3) {
+                    val ringPhase = (phase + ring * 0.25f + index * 0.06f) % 1f
+                    val radius = maxRadius * (0.08f + ringPhase * 0.92f)
+                    val alpha = (1f - ringPhase) * 0.26f
+                    val hue = (phase * 360f + index * 48f + ring * 70f) % 360f
+                    drawCircle(
+                        color = Color.hsv(hue, 0.72f, 1f).copy(alpha = alpha),
+                        radius = radius,
+                        center = origin,
+                        style = Stroke(width = 3.dp.toPx())
+                    )
+                }
+            }
+        }
 }

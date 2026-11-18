@@ -30,6 +30,7 @@ import com.example.xo.engine.GameMode
 import com.example.xo.ui.AppLanguage
 import com.example.xo.ui.translate
 import com.example.xo.ui.game.GameUiState
+import com.example.xo.ui.audio.dynamicWaveBackground
 
 @Composable
 fun GameScreen(
@@ -38,7 +39,9 @@ fun GameScreen(
     onMove: (Int) -> Unit,
     onReconnect: () -> Unit,
     onRestart: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    musicEnabled: Boolean,
+    onMusicToggle: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     var showExitConfirmation by remember { mutableStateOf(false) }
@@ -70,7 +73,7 @@ fun GameScreen(
         )
     }
 
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(Modifier.fillMaxSize(), color = dynamicWaveBackground()) {
         Column(
             Modifier.fillMaxSize().padding(start = 18.dp, end = 18.dp, top = 28.dp, bottom = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -81,6 +84,10 @@ fun GameScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("XO3D", style = MaterialTheme.typography.titleLarge)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onMusicToggle) {
+                        Text(if (musicEnabled) "♫" else "♪", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
+                    }
                 Box {
                     IconButton(onClick = { menuExpanded = true }) {
                         ThreeDMenuIcon("⋮")
@@ -104,6 +111,7 @@ fun GameScreen(
                             }
                         )
                     }
+                }
                 }
             }
 

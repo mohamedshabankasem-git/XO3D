@@ -56,6 +56,12 @@ fun translate(value: String, language: AppLanguage): String {
         "Selected" to "محدد",
         "Join selected device" to "الاتصال بالجهاز المحدد",
         "Back" to "رجوع",
+        "Reconnect" to "إعادة الاتصال",
+        "Connection lost • Tap reconnect" to "انقطع الاتصال • اضغط لإعادة الاتصال",
+        "The other device did not start an XO3D game." to "الجهاز الآخر لم يبدأ لعبة XO3D.",
+        "Invalid player handshake." to "تعذر التحقق من اتصال اللاعب الآخر.",
+        "The host did not send the current match state." to "لم يرسل الجهاز المضيف حالة المباراة الحالية.",
+        "Invalid match state." to "بيانات المباراة غير صالحة.",
         "Bluetooth device" to "جهاز بلوتوث",
         "Paired" to "مقترن",
         "Nearby" to "قريب",
@@ -74,6 +80,7 @@ fun translate(value: String, language: AppLanguage): String {
     if (value.startsWith("Connecting to ")) return "جارٍ الاتصال بـ " + value.removePrefix("Connecting to ").removeSuffix("…") + "…"
     if (value.startsWith("Player ") && value.endsWith("'s turn")) return "دور اللاعب " + value.removePrefix("Player ").removeSuffix("'s turn")
     if (value.endsWith(" wins!")) return "فاز " + value.removeSuffix(" wins!")
+    if (value.startsWith("Connection lost")) return "انقطع الاتصال • اضغط لإعادة الاتصال"
     if (value.startsWith("Paired • ")) return "مقترن • " + value.removePrefix("Paired • ")
     if (value.startsWith("Nearby • ")) return "قريب • " + value.removePrefix("Nearby • ")
     return value

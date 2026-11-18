@@ -15,7 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.input.pointer.pointerInput
@@ -134,7 +134,8 @@ fun Modifier.touchWaveBackground(): Modifier {
                 }
             }
         }
-        .drawBehind {
+        .drawWithContent {
+            drawContent()
             val maxRadius = size.maxDimension * 0.72f
             touchOrigins.forEachIndexed { index, origin ->
                 for (ring in 0..3) {

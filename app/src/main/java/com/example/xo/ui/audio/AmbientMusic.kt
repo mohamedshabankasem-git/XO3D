@@ -20,6 +20,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 
@@ -137,7 +138,7 @@ fun Modifier.touchWaveBackground(): Modifier {
         .drawWithContent {
             drawContent()
             val maxRadius = size.maxDimension * 0.72f
-            touchOrigins.forEachIndexed { index, origin ->
+            touchOrigins.forEachIndexed { index: Int, origin: Offset ->
                 for (ring in 0..3) {
                     val ringPhase = (phase + ring.toFloat() * 0.25f + index.toFloat() * 0.06f) % 1f
                     val radius = maxRadius * (0.08f + ringPhase * 0.92f)

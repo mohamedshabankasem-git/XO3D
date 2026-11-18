@@ -5,6 +5,14 @@ import android.media.AudioFormat
 import android.media.AudioTrack
 import kotlin.math.PI
 import kotlin.math.sin
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Color
 
 /**
  * Original synthesized ambient loop (no external/copyrighted recording).
@@ -78,4 +86,16 @@ class AmbientMusic {
         runCatching { audioTrack?.pause(); audioTrack?.flush(); audioTrack?.stop(); audioTrack?.release() }
         audioTrack = null
     }
+}
+
+@Composable
+fun dynamicWaveBackground(): Color {
+    val transition = rememberInfiniteTransition(label = "appBackgroundWave")
+    val hue by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(durationMillis = 26000, easing = LinearEasing)),
+        label = "backgroundHue"
+    )
+    return Color.hsv(hue, 0.42f, 0.19f)
 }

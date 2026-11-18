@@ -62,6 +62,8 @@ fun translate(value: String, language: AppLanguage): String {
         "Invalid player handshake." to "تعذر التحقق من اتصال اللاعب الآخر.",
         "The host did not send the current match state." to "لم يرسل الجهاز المضيف حالة المباراة الحالية.",
         "Invalid match state." to "بيانات المباراة غير صالحة.",
+        "Could not connect to the selected device." to "تعذر الاتصال بالجهاز المحدد.",
+        "Could not start discovery. Turn Bluetooth off and on, then retry." to "تعذر بدء البحث. أوقف البلوتوث ثم شغّله وحاول مجددًا.",
         "Bluetooth device" to "جهاز بلوتوث",
         "Paired" to "مقترن",
         "Nearby" to "قريب",
@@ -83,5 +85,5 @@ fun translate(value: String, language: AppLanguage): String {
     if (value.startsWith("Connection lost")) return "انقطع الاتصال • اضغط لإعادة الاتصال"
     if (value.startsWith("Paired • ")) return "مقترن • " + value.removePrefix("Paired • ")
     if (value.startsWith("Nearby • ")) return "قريب • " + value.removePrefix("Nearby • ")
-    return value
+    return "حدث خطأ غير متوقع. حاول مرة أخرى."
 }

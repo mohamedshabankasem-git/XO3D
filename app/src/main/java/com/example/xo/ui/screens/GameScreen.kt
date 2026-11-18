@@ -1,7 +1,10 @@
 package com.example.xo.ui.screens
 
-import android.media.AudioManager
-import android.media.ToneGenerator
+import android.media.AudioTrack
+import android.media.AudioFormat
+import android.media.AudioAttributes
+import kotlin.math.PI
+import kotlin.math.sin
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -202,8 +205,6 @@ private fun GameBoard3D(
     isFlat: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val clickTone = remember { ToneGenerator(AudioManager.STREAM_SYSTEM, 52) }
-    DisposableEffect(clickTone) { onDispose { clickTone.release() } }
     val transition = rememberInfiniteTransition(label = "boardColorWave")
     val wavePhase by transition.animateFloat(initialValue = 0f, targetValue = (2f * Math.PI).toFloat(), animationSpec = infiniteRepeatable(tween(durationMillis = 12000, easing = LinearEasing)), label = "wavePhase")
     val phases = remember { List(9) { Random.nextFloat() * (2f * Math.PI).toFloat() } }
@@ -225,7 +226,7 @@ private fun GameBoard3D(
                         val row = (p.y / (size.height / 3f)).toInt().coerceIn(0, 2)
                         val index = row * 3 + col
                         if (cells[index] == Cell.EMPTY) {
-                            clickTone.startTone(ToneGenerator.TONE_PROP_ACK, 45)
+                            playWoodDominoTap()
                             onMove(index)
                         }
                     }
@@ -287,4 +288,36 @@ private fun ThreeDMenuIcon(symbol: String) {
             Text(symbol, color = Color.White, style = MaterialTheme.typography.titleLarge)
         }
     }
+}
+
+/** Short synthesized wood-on-wood domino tap transient. */
+private fun playWoodDominoTap() {
+    Thread {
+        val rate = 22050
+        val frames = 1800 // ~82 ms
+        val pcm = ShortArray(frames)
+        var seed = 0x1234ABCD
+        for (i in 0 until frames) {
+            seed = seed * 1103515245 + 12345
+            val noise = ((seed ushr 16) and 0x7FFF) / 16384.0 - 1.0
+            val t = i.toDouble() / rate
+            val envelope = kotlin.math.exp(-t * 42.0)
+            val woodTone = sin(2.0 * PI * 720.0 * t) * 0.35 + sin(2.0 * PI * 165.0 * t) * 0.5
+            val sample = (noise * 0.45 + woodTone) * envelope * 9000.0
+            pcm[i] = sample.toInt().coerceIn(-32768, 32767).toShort()
+        }
+        runCatching {
+            val track = AudioTrack.Builder()
+                .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_GAME).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
+                .setAudioFormat(AudioFormat.Builder().setSampleRate(rate).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).setEncoding(AudioFormat.ENCODING_PCM_16BIT).build())
+                .setBufferSizeInBytes(pcm.size * 2)
+                .setTransferMode(AudioTrack.MODE_STATIC)
+                .build()
+            track.write(pcm, 0, pcm.size)
+            track.play()
+            Thread.sleep(110)
+            track.stop()
+            track.release()
+        }
+    }.apply { isDaemon = true; start() }
 }

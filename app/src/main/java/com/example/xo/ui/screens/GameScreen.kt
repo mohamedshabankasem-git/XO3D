@@ -31,7 +31,6 @@ import com.example.xo.ui.AppLanguage
 import com.example.xo.ui.translate
 import com.example.xo.ui.game.GameUiState
 import com.example.xo.ui.audio.dynamicWaveBackground
-import com.example.xo.ui.audio.touchWaveBackground
 
 @Composable
 fun GameScreen(
@@ -74,7 +73,7 @@ fun GameScreen(
         )
     }
 
-    Surface(Modifier.fillMaxSize().touchWaveBackground(), color = dynamicWaveBackground()) {
+    Surface(Modifier.fillMaxSize(), color = dynamicWaveBackground()) {
         Column(
             Modifier.fillMaxSize().padding(start = 18.dp, end = 18.dp, top = 28.dp, bottom = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally

@@ -247,7 +247,7 @@ private fun GameBoard3D(
             when (cells[r * 3 + c]) {
                 Cell.X -> {
                     drawLine(animatedWaveColor(wavePhase + phases[r * 3 + c], 0.34f, 0.84f), Offset(x-rad,y-rad), Offset(x+rad,y+rad), 13.dp.toPx(), cap=StrokeCap.Round)
-                    drawLine(Color(0xFF8CE6D0), Offset(x+rad,y-rad), Offset(x-rad,y+rad), 13.dp.toPx(), cap=StrokeCap.Round)
+                    drawLine(animatedWaveColor(wavePhase + phases[r * 3 + c] + 1.7f, 0.34f, 0.84f), Offset(x+rad,y-rad), Offset(x-rad,y+rad), 13.dp.toPx(), cap=StrokeCap.Round)
                 }
                 Cell.O -> drawCircle(animatedWaveColor(wavePhase + phases[r * 3 + c] + 2.4f, 0.30f, 0.88f), rad, Offset(x,y), style=Stroke(13.dp.toPx()))
                 Cell.EMPTY -> Unit

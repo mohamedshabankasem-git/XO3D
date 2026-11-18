@@ -5,6 +5,7 @@ import android.media.AudioFormat
 import android.media.AudioTrack
 import kotlin.math.PI
 import kotlin.math.sin
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -21,6 +22,9 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 
@@ -54,7 +58,7 @@ class AmbientMusic {
             .setTransferMode(AudioTrack.MODE_STREAM)
             .build()
         audioTrack = track
-        track.setVolume(0.42f)
+        track.setVolume(0.90f)
         track.play()
         worker = Thread {
             val buffer = ShortArray(1024)
@@ -112,45 +116,47 @@ fun dynamicWaveBackground(): Color {
 
 
 /**
- * Records touch origins without consuming gestures, then paints expanding,
- * hue-shifting rings behind the screen content.
+ * Single slow water-like ripple, shown only on the start screen.
+ * Each touch restarts one broad, smoothly expanding ring that fades out.
  */
 @Composable
 fun Modifier.touchWaveBackground(): Modifier {
-    val touchOrigins = remember { mutableStateListOf<Offset>() }
-    val transition = rememberInfiniteTransition(label = "touchWaves")
-    val phase by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(durationMillis = 2200, easing = LinearEasing)),
-        label = "touchWavePhase"
-    )
+    val origin = remember { androidx.compose.runtime.mutableStateOf<Offset?>(null) }
+    val progress = remember { Animatable(1f) }
+    val scope = rememberCoroutineScope()
+    val rippleJob = remember { androidx.compose.runtime.mutableStateOf<Job?>(null) }
+
     return this
         .pointerInput(Unit) {
             awaitEachGesture {
-                while (true) {
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    touchOrigins.add(down.position)
-                    if (touchOrigins.size > 7) touchOrigins.removeAt(0)
+                val down = awaitFirstDown(requireUnconsumed = false)
+                origin.value = down.position
+                rippleJob.value?.cancel()
+                rippleJob.value = scope.launch {
+                    progress.snapTo(0f)
+                    progress.animateTo(
+                        targetValue = 1f,
+                        animationSpec = tween(durationMillis = 4600, easing = LinearEasing)
+                    )
                 }
             }
         }
         .drawWithContent {
             drawContent()
-            val maxRadius = size.maxDimension * 0.72f
-            touchOrigins.forEachIndexed { index: Int, origin: Offset ->
-                for (ring in 0..3) {
-                    val ringPhase = (phase + ring.toFloat() * 0.25f + index.toFloat() * 0.06f) % 1f
-                    val radius = maxRadius * (0.08f + ringPhase * 0.92f)
-                    val alpha = (1f - ringPhase) * 0.26f
-                    val hue = (phase * 360f + index.toFloat() * 48f + ring.toFloat() * 70f) % 360f
-                    drawCircle(
-                        color = Color.hsv(hue, 0.72f, 1f).copy(alpha = alpha),
-                        radius = radius,
-                        center = origin,
-                        style = Stroke(width = 3.dp.toPx())
-                    )
-                }
+            val center = origin.value
+            if (center != null && progress.value < 1f) {
+                val p = progress.value
+                val radius = size.maxDimension * 0.68f * p
+                // The wave becomes wider as it expands, then gently dissolves.
+                val waveWidth = (3f + 22f * p).dp.toPx()
+                val fade = (1f - p) * (1f - p) * 0.42f
+                val hue = (195f + p * 42f) % 360f
+                drawCircle(
+                    color = Color.hsv(hue, 0.48f, 1f).copy(alpha = fade),
+                    radius = radius,
+                    center = center,
+                    style = Stroke(width = waveWidth)
+                )
             }
         }
 }

@@ -2,6 +2,12 @@ package com.example.xo.ui.screens
 
 import android.media.AudioManager
 import android.media.ToneGenerator
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import kotlin.random.Random
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -188,8 +194,11 @@ private fun GameBoard3D(
     isFlat: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val clickTone = remember { ToneGenerator(AudioManager.STREAM_MUSIC, 70) }
+    val clickTone = remember { ToneGenerator(AudioManager.STREAM_SYSTEM, 18) }
     DisposableEffect(clickTone) { onDispose { clickTone.release() } }
+    val transition = rememberInfiniteTransition(label = "boardColorWave")
+    val wavePhase by transition.animateFloat(initialValue = 0f, targetValue = (2f * Math.PI).toFloat(), animationSpec = infiniteRepeatable(tween(durationMillis = 12000, easing = LinearEasing)), label = "wavePhase")
+    val phases = remember { List(9) { Random.nextFloat() * (2f * Math.PI).toFloat() } }
     Canvas(
         modifier.clip(RoundedCornerShape(26.dp))
             .background(Color(0xFF172635))
@@ -208,7 +217,7 @@ private fun GameBoard3D(
                         val row = (p.y / (size.height / 3f)).toInt().coerceIn(0, 2)
                         val index = row * 3 + col
                         if (cells[index] == Cell.EMPTY) {
-                            clickTone.startTone(ToneGenerator.TONE_PROP_BEEP, 65)
+                            clickTone.startTone(ToneGenerator.TONE_PROP_ACK, 22)
                             onMove(index)
                         }
                     }
@@ -218,7 +227,7 @@ private fun GameBoard3D(
         val w = size.width / 3f
         val h = size.height / 3f
         drawRoundRect(
-            Color(0xFF0B121B),
+            animatedWaveColor(wavePhase, 0.13f, 0.58f),
             topLeft = Offset(7.dp.toPx(), 12.dp.toPx()),
             size = Size(size.width - 14.dp.toPx(), size.height - 20.dp.toPx()),
             cornerRadius = androidx.compose.ui.geometry.CornerRadius(24.dp.toPx())
@@ -227,7 +236,7 @@ private fun GameBoard3D(
             val left = c * w + 7.dp.toPx()
             val top = r * h + 7.dp.toPx()
             drawRoundRect(
-                Brush.linearGradient(listOf(Color(0xFF395365), Color(0xFF1D3040))),
+                Brush.linearGradient(listOf(animatedWaveColor(wavePhase + phases[r * 3 + c], 0.08f, 0.46f), animatedWaveColor(wavePhase + phases[r * 3 + c] + 2.1f, 0.18f, 0.33f))),
                 Offset(left, top),
                 Size(w - 14.dp.toPx(), h - 14.dp.toPx()),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(17.dp.toPx())
@@ -237,15 +246,22 @@ private fun GameBoard3D(
             val rad = minOf(w, h) * 0.24f
             when (cells[r * 3 + c]) {
                 Cell.X -> {
-                    drawLine(Color(0xFF8CE6D0), Offset(x-rad,y-rad), Offset(x+rad,y+rad), 13.dp.toPx(), cap=StrokeCap.Round)
+                    drawLine(animatedWaveColor(wavePhase + phases[r * 3 + c], 0.34f, 0.84f), Offset(x-rad,y-rad), Offset(x+rad,y+rad), 13.dp.toPx(), cap=StrokeCap.Round)
                     drawLine(Color(0xFF8CE6D0), Offset(x+rad,y-rad), Offset(x-rad,y+rad), 13.dp.toPx(), cap=StrokeCap.Round)
                 }
-                Cell.O -> drawCircle(Color(0xFFFFC46B), rad, Offset(x,y), style=Stroke(13.dp.toPx()))
+                Cell.O -> drawCircle(animatedWaveColor(wavePhase + phases[r * 3 + c] + 2.4f, 0.30f, 0.88f), rad, Offset(x,y), style=Stroke(13.dp.toPx()))
                 Cell.EMPTY -> Unit
             }
         }
     }
 }
+
+
+private fun animatedWaveColor(phase: Float, saturation: Float, value: Float): Color {
+    val hue = ((phase / (2f * Math.PI).toFloat() * 360f) % 360f + 360f) % 360f
+    return Color.hsv(hue, saturation, value)
+}
+
 
 @Composable
 private fun ThreeDMenuIcon(symbol: String) {

@@ -58,7 +58,7 @@ class AmbientMusic {
             .setTransferMode(AudioTrack.MODE_STREAM)
             .build()
         audioTrack = track
-        track.setVolume(0.90f)
+        track.setVolume(1.00f)
         track.play()
         worker = Thread {
             val buffer = ShortArray(1024)
@@ -116,47 +116,35 @@ fun dynamicWaveBackground(): Color {
 
 
 /**
- * Single slow water-like ripple, shown only on the start screen.
- * Each touch restarts one broad, smoothly expanding ring that fades out.
+ * Natural overlapping water ripples on the start screen.
+ * Each touch creates its own expanding, fading ring.
  */
+private data class WaterRipple(val center: Offset, val progress: Animatable)
+
 @Composable
 fun Modifier.touchWaveBackground(): Modifier {
-    val origin = remember { androidx.compose.runtime.mutableStateOf<Offset?>(null) }
-    val progress = remember { Animatable(1f) }
+    val ripples = remember { mutableStateListOf<WaterRipple>() }
     val scope = rememberCoroutineScope()
-    val rippleJob = remember { androidx.compose.runtime.mutableStateOf<Job?>(null) }
-
-    return this
-        .pointerInput(Unit) {
-            awaitEachGesture {
-                val down = awaitFirstDown(requireUnconsumed = false)
-                origin.value = down.position
-                rippleJob.value?.cancel()
-                rippleJob.value = scope.launch {
-                    progress.snapTo(0f)
-                    progress.animateTo(
-                        targetValue = 1f,
-                        animationSpec = tween(durationMillis = 4600, easing = LinearEasing)
-                    )
-                }
+    return this.pointerInput(Unit) {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            val ripple = WaterRipple(down.position, Animatable(0f))
+            ripples.add(ripple)
+            scope.launch {
+                ripple.progress.animateTo(1f, tween(durationMillis = 5200, easing = LinearEasing))
+                ripples.remove(ripple)
             }
         }
-        .drawWithContent {
-            drawContent()
-            val center = origin.value
-            if (center != null && progress.value < 1f) {
-                val p = progress.value
-                val radius = size.maxDimension * 0.68f * p
-                // The wave becomes wider as it expands, then gently dissolves.
-                val waveWidth = (3f + 22f * p).dp.toPx()
-                val fade = (1f - p) * (1f - p) * 0.42f
-                val hue = (195f + p * 42f) % 360f
-                drawCircle(
-                    color = Color.hsv(hue, 0.48f, 1f).copy(alpha = fade),
-                    radius = radius,
-                    center = center,
-                    style = Stroke(width = waveWidth)
-                )
-            }
+    }.drawWithContent {
+        drawContent()
+        ripples.toList().forEach { ripple ->
+            val p = ripple.progress.value
+            val radius = size.maxDimension * 0.72f * p
+            val width = (1.5f + 12f * p).dp.toPx()
+            val alpha = (1f - p) * (1f - p) * 0.24f
+            val hue = (192f + p * 30f) % 360f
+            drawCircle(Color.hsv(hue, 0.34f, 1f).copy(alpha = alpha * 0.55f), radius * 0.985f, ripple.center, style = Stroke(width * 1.8f))
+            drawCircle(Color.hsv(hue, 0.42f, 1f).copy(alpha = alpha), radius, ripple.center, style = Stroke(width))
         }
+    }
 }
